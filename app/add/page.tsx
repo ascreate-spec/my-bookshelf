@@ -120,6 +120,10 @@ export default function AddBookPage() {
 
   const handleSave = async () => {
     if (!book) return;
+    if (!user) {
+    setMessage("ログインしてください");
+    return;
+  }
 
     try {
       setSaving(true);
@@ -162,6 +166,11 @@ export default function AddBookPage() {
     if (!manualTitle.trim()) {
       setMessage("タイトルは必須です");
       return;
+    }
+    
+    if (!user) {
+    setMessage("ログインしてください");
+    return;
     }
 
     try {
