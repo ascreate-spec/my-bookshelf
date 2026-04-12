@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../../lib/ui";
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { searchBooks, BookSearchItem } from "@/lib/bookSearch";
 
-type BookInfo = {
-  title: string;
-  authors: string[];
-  publisher: string;
-  image?: string;
-  isbn?: string;
-};
+type BookInfo = BookSearchItem;
 
 export default function AddBookPage() {
   const [keyword, setKeyword] = useState("");
@@ -31,6 +33,43 @@ export default function AddBookPage() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
+  const ensureTagsExist = async (uid: string, tags: string[]) => {
+  const normalizedTags = Array.from(
+    new Set(
+      tags
+        .map((tag) => tag.trim())
+        .filter((tag) => tag !== "")
+    )
+  );
+
+  if (normalizedTags.length === 0) return;
+
+  const q = query(
+    collection(db, "tags"),
+    where("uid", "==", uid)
+  );
+
+  const snapshot = await getDocs(q);
+
+  const existingTagNames = snapshot.docs.map((docSnap) =>
+    String(docSnap.data().name || "").trim().toLowerCase()
+  );
+
+  const missingTags = normalizedTags.filter(
+    (tag) => !existingTagNames.includes(tag.toLowerCase())
+  );
+
+  await Promise.all(
+    missingTags.map((tag) =>
+      addDoc(collection(db, "tags"), {
+        name: tag,
+        uid,
+        createdAt: new Date(),
+      })
+    )
+  );
+};
+
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
     setUser(currentUser);
@@ -39,175 +78,172 @@ export default function AddBookPage() {
   return () => unsubscribe();
 }, []);
 
-  const handleSearch = async () => {
-    const trimmed = keyword.trim();
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+  const normalizeIsbn = (isbn: string) => {
+  return isbn.replace(/[^0-9X]/gi, "").trim();
+};
 
-    if (!trimmed) {
-      setMessage("ISBN、タイトル、作者のいずれかを入力してください");
-      setSearchResults([]);
-      setBook(null);
-      setSelectedIndex(null);
+const isDuplicateIsbn = async (isbn: string) => {
+  if (!user) return false;
+
+  const normalized = normalizeIsbn(isbn);
+  if (!normalized) return false;
+
+  const q = query(
+    collection(db, "books"),
+    where("uid", "==", user.uid),
+    where("isbn", "==", normalized),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+};
+
+  const handleSearch = async () => {
+  const trimmed = keyword.trim();
+
+  if (!trimmed) {
+    setMessage("ISBN、タイトル、作者のいずれかを入力してください");
+    setSearchResults([]);
+    setBook(null);
+    setSelectedIndex(null);
+    return;
+  }
+
+  setSelectedIndex(null);
+  setMessage("検索中...");
+  setBook(null);
+  setSearchResults([]);
+
+  try {
+    const results = await searchBooks(trimmed);
+
+    if (results.length === 0) {
+      setMessage("本が見つかりませんでした");
       return;
     }
 
-    setSelectedIndex(null);
-    setMessage("検索中...");
-    setBook(null);
-    setSearchResults([]);
-
-    try {
-      const normalized = trimmed.replace(/-/g, "");
-      const isIsbnLike = /^[0-9]{10,13}$/.test(normalized);
-
-      const queries = isIsbnLike
-        ? [`isbn:${normalized}`, trimmed]
-        : [trimmed, `intitle:${trimmed}`, `inauthor:${trimmed}`];
-
-      let foundItems: any[] = [];
-
-      for (const q of queries) {
-        const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=15&key=${apiKey}`
-        );
-
-        if (!res.ok) {
-          continue;
-        }
-
-        const data = await res.json();
-
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          foundItems = data.items;
-          break;
-        }
-      }
-
-      if (foundItems.length === 0) {
-        setMessage("本が見つかりませんでした");
-        return;
-      }
-
-      const results: BookInfo[] = foundItems.slice(0, 15).map((item: any) => {
-        const info = item.volumeInfo || {};
-
-        const isbn13 =
-          info.industryIdentifiers?.find(
-            (identifier: any) => identifier.type === "ISBN_13"
-          )?.identifier || "";
-
-        const isbn10 =
-          info.industryIdentifiers?.find(
-            (identifier: any) => identifier.type === "ISBN_10"
-          )?.identifier || "";
-
-        return {
-          title: info.title || "タイトルなし",
-          authors: info.authors || [],
-          publisher: info.publisher || "出版社なし",
-          image: info.imageLinks?.thumbnail || "",
-          isbn: isbn13 || isbn10 || "",
-        };
-      });
-
-      setSearchResults(results);
-      setMessage("候補を選んで保存してください");
-    } catch (error) {
-      console.error(error);
-      setMessage("検索に失敗しました");
-    }
-  };
+    setSearchResults(results);
+    setMessage("候補を選んで保存してください");
+  } catch (error) {
+    console.error(error);
+    setMessage("検索に失敗しました");
+  }
+};
 
   const handleSave = async () => {
-    if (!book) return;
-    if (!user) {
+  if (!book) return;
+
+  if (!user) {
     setMessage("ログインしてください");
     return;
   }
 
-    try {
-      setSaving(true);
+  try {
+    setSaving(true);
 
-      await addDoc(collection(db, "books"), {
-        isbn: book.isbn || "",
-        title: book.title,
-        author: book.authors.length > 0 ? book.authors.join(", ") : "",
-        authors: book.authors,
-        publisher: book.publisher,
-        image: book.image || "",
-        shelf: "未分類",
-        status: "未読",
-        finishedDate: "",
-        memo: "",
-        tags: [],
-        owned: false,
-        uid: user.uid,
-        createdAt: new Date(),
-      });
+    const normalizedIsbn = normalizeIsbn(book.isbn || "");
 
-      setMessage("追加しました！");
-      setTimeout(() => {
-        router.push("/");
-      }, 500);
+    if (normalizedIsbn) {
+      const exists = await isDuplicateIsbn(normalizedIsbn);
 
-      setBook(null);
-      setKeyword("");
-      setSearchResults([]);
-      setSelectedIndex(null);
-    } catch (error) {
-      console.error(error);
-      setMessage("保存に失敗しました");
-    } finally {
-      setSaving(false);
+      if (exists) {
+        setMessage("同じISBNの本はすでに登録されています");
+        return;
+      }
     }
-  };
+
+    await addDoc(collection(db, "books"), {
+      isbn: normalizedIsbn,
+      title: book.title,
+      author: book.authors.length > 0 ? book.authors.join(", ") : "",
+      authors: book.authors,
+      publisher: book.publisher,
+      image: book.thumbnail || "",
+      shelf: "未分類",
+      status: "未読",
+      finishedDate: "",
+      memo: "",
+      tags: [],
+      owned: false,
+      uid: user.uid,
+      createdAt: new Date(),
+    });
+
+    setMessage("追加しました！");
+    setTimeout(() => {
+      router.push("/");
+    }, 500);
+
+    setBook(null);
+    setKeyword("");
+    setSearchResults([]);
+    setSelectedIndex(null);
+  } catch (error) {
+    console.error(error);
+    setMessage("保存に失敗しました");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleManualSave = async () => {
-    if (!manualTitle.trim()) {
-      setMessage("タイトルは必須です");
-      return;
-    }
-    
-    if (!user) {
+  if (!manualTitle.trim()) {
+    setMessage("タイトルは必須です");
+    return;
+  }
+
+  if (!user) {
     setMessage("ログインしてください");
     return;
+  }
+
+  try {
+    const normalizedIsbn = normalizeIsbn(manualIsbn);
+
+    if (normalizedIsbn) {
+      const exists = await isDuplicateIsbn(normalizedIsbn);
+
+      if (exists) {
+        setMessage("同じISBNの本はすでに登録されています");
+        return;
+      }
     }
 
-    try {
-      await addDoc(collection(db, "books"), {
-        isbn: manualIsbn.trim(),
-        title: manualTitle.trim(),
-        author: manualAuthors.trim(),
-        authors: manualAuthors
-          ? manualAuthors.split(",").map((a) => a.trim())
-          : [],
-        publisher: manualPublisher.trim(),
-        image: "",
-        shelf: "未分類",
-        status: "未読",
-        finishedDate: "",
-        memo: "",
-        tags: [],
-        owned: false,
-        uid: user.uid,
-        createdAt: new Date(),
-        isManual: true,
-      });
+    await addDoc(collection(db, "books"), {
+      isbn: normalizedIsbn,
+      title: manualTitle.trim(),
+      author: manualAuthors.trim(),
+      authors: manualAuthors
+        ? manualAuthors.split(",").map((a) => a.trim())
+        : [],
+      publisher: manualPublisher.trim(),
+      image: "",
+      shelf: "未分類",
+      status: "未読",
+      finishedDate: "",
+      memo: "",
+      tags: [],
+      owned: false,
+      uid: user.uid,
+      createdAt: new Date(),
+      isManual: true,
+    });
 
-      setMessage("追加しました！");
-      setTimeout(() => {
-        router.push("/");
-      }, 500);
+    setMessage("追加しました！");
+    setTimeout(() => {
+      router.push("/");
+    }, 500);
 
-      setManualTitle("");
-      setManualAuthors("");
-      setManualPublisher("");
-      setManualIsbn("");
-    } catch (error) {
-      console.error(error);
-      setMessage("保存に失敗しました");
-    }
-  };
+    setManualTitle("");
+    setManualAuthors("");
+    setManualPublisher("");
+    setManualIsbn("");
+  } catch (error) {
+    console.error(error);
+    setMessage("保存に失敗しました");
+  }
+};
 
   return (
     <main style={ui.layout.page}>
@@ -287,14 +323,49 @@ export default function AddBookPage() {
             キーワード
           </label>
 
-          <input
-            id="keyword"
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="ISBN / タイトル / 作者 で検索"
-            style={{ ...ui.input.base, marginBottom: "16px" }}
-          />
+          <div style={{ position: "relative", marginBottom: "16px" }}>
+  <input
+    id="keyword"
+    type="text"
+    value={keyword}
+    onChange={(e) => setKeyword(e.target.value)}
+    placeholder="ISBN / タイトル / 作者 で検索"
+    style={{
+      ...ui.input.base,
+      marginBottom: 0,
+      paddingRight: "36px",
+    }}
+    onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleSearch();
+  }
+}}
+  />
+
+  {keyword && (
+    <button
+      type="button"
+      onClick={() => setKeyword("")}
+      aria-label="検索文字をクリア"
+      style={{
+        position: "absolute",
+        right: "8px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        fontSize: "16px",
+        color: ui.colors.subText,
+        padding: "4px",
+        lineHeight: 1,
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
 
           <button
             onClick={handleSearch}
@@ -354,19 +425,21 @@ onMouseLeave={(e) => {
                         : ui.colors.cardBg,
                   }}
                 >
-                  {result.image && (
-                    <img
-                      src={result.image}
-                      alt="表紙"
-                      style={{
-                        width: "60px",
-                        minWidth: "60px",
-                        borderRadius: "6px",
-                        display: "block",
-                      }}
-                    />
-                  )}
-
+                  {result.thumbnail && (
+  <img
+    src={result.thumbnail}
+    alt="表紙"
+    style={{
+      width: "60px",
+      minWidth: "60px",
+      height: "auto",
+      objectFit: "contain",
+      borderRadius: "6px",
+      display: "block",
+      alignSelf: "flex-start",
+    }}
+  />
+)}
                   <div style={{ minWidth: 0 }}>
                     <p
                       style={{
@@ -399,6 +472,23 @@ onMouseLeave={(e) => {
                     >
                       ISBN: {result.isbn || "なし"}
                     </p>
+                    <p
+  style={{
+    margin: "4px 0 0 0",
+    color: "#888",
+    fontSize: "12px",
+  }}
+>
+  {result.source === "google+openbd"
+    ? "Google + openBD"
+    : "Google Books"}
+</p>
+
+{result.description && (
+  <p style={{ fontSize: "13px", marginTop: "4px" }}>
+    {result.description.slice(0, 80)}...
+  </p>
+)}
                   </div>
                 </div>
               ))}
@@ -409,9 +499,9 @@ onMouseLeave={(e) => {
         <div className="twoColumn">
           {book ? (
             <div className="selectedArea">
-              {book.image && (
-                <img
-                  src={book.image}
+              {book.thumbnail && (
+  <img
+    src={book.thumbnail}
                   alt="表紙"
                   style={{
                     width: "120px",
@@ -467,18 +557,6 @@ onMouseLeave={(e) => {
                 <strong>ISBN:</strong> {book.isbn || "なし"}
               </p>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                  marginTop: "12px",
-                }}
-              >
-                <span style={ui.badge.shelf}>未分類</span>
-                <span style={ui.badge.notOwned}>未所持</span>
-              </div>
-
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -530,6 +608,12 @@ onMouseLeave={(e) => {
               value={manualTitle}
               onChange={(e) => setManualTitle(e.target.value)}
               style={{ ...ui.input.base, marginBottom: "12px" }}
+              onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleManualSave();
+  }
+}}
             />
 
             <label style={ui.input.label}>著者</label>
@@ -538,6 +622,12 @@ onMouseLeave={(e) => {
               value={manualAuthors}
               onChange={(e) => setManualAuthors(e.target.value)}
               style={{ ...ui.input.base, marginBottom: "12px" }}
+              onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleManualSave();
+  }
+}}
             />
 
             <label style={ui.input.label}>出版社</label>
@@ -546,6 +636,12 @@ onMouseLeave={(e) => {
               value={manualPublisher}
               onChange={(e) => setManualPublisher(e.target.value)}
               style={{ ...ui.input.base, marginBottom: "12px" }}
+              onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleManualSave();
+  }
+}}
             />
 
             <label style={ui.input.label}>ISBN（任意）</label>
@@ -554,19 +650,14 @@ onMouseLeave={(e) => {
               value={manualIsbn}
               onChange={(e) => setManualIsbn(e.target.value)}
               style={{ ...ui.input.base, marginBottom: "12px" }}
+              onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleManualSave();
+  }
+}}
             />
 
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "6px",
-                marginBottom: "12px",
-              }}
-            >
-              <span style={ui.badge.shelf}>未分類</span>
-              <span style={ui.badge.notOwned}>未所持</span>
-            </div>
             <button
               onClick={handleManualSave}
               className="actionButton"

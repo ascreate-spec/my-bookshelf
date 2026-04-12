@@ -9,6 +9,7 @@ export const ui = {
     bg: "#f7fafb",
     cardBg: "#ffffff",
     white: "#ffffff",
+    hoverBg: "#F5F5F5",
 
     primary: "#5f7c8a",
     primaryText: "#ffffff",
@@ -206,11 +207,11 @@ export const ui = {
     shelf: {
       fontWeight: "bold",
       color: "#4a6572",
-      background: "#e6eef2",
+      background: "#FFF3CD",
       padding: "4px 8px",
       borderRadius: "999px",
       display: "inline-block",
-      fontSize: "13px",
+      fontSize: "12px",
     } as CSSProperties,
 
     owned: {

@@ -79,8 +79,9 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<string>("すべて");
   const [selectedOwned, setSelectedOwned] = useState("すべて");
   const [searchText, setSearchText] = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagFilterText, setTagFilterText] = useState("");
+  const [activeTagIndex, setActiveTagIndex] = useState(-1);
   const [showTagFilterSuggestions, setShowTagFilterSuggestions] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
@@ -136,63 +137,39 @@ export default function Home() {
     return bookList;
   };
 
-  const fetchShelves = async (bookListFromFetch: SavedBook[] = []) => {
-    if (!user) {
-      setShelfList(defaultShelves);
-      return;
-    }
+  const fetchShelves = async () => {
+  if (!user) {
+    setShelfList([]);
+    return;
+  }
 
-    const querySnapshot = await getDocs(collection(db, "shelves"));
-    const fetchedShelves: Shelf[] = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      name: (doc.data().name || "").trim(),
-      order:
-        typeof doc.data().order === "number" ? doc.data().order : undefined,
-    }));
+  const q = query(
+    collection(db, "shelves"),
+    where("uid", "==", user.uid)
+  );
 
-    const dbShelves = fetchedShelves.filter((shelf) => shelf.name !== "");
+  const querySnapshot = await getDocs(q);
 
-    const bookShelves = bookListFromFetch
-      .map((book) => normalizeShelfName(book.shelf))
-      .filter((name) => name !== "");
+  const fetchedShelves: Shelf[] = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    name: (doc.data().name || "").trim(),
+    order:
+      typeof doc.data().order === "number" ? doc.data().order : 9999,
+  }));
 
-    const mergedShelfNames = Array.from(
-      new Set([
-        ...defaultShelves,
-        ...dbShelves.map((shelf) => shelf.name),
-        ...bookShelves,
-      ])
-    );
+  const sortedShelves = fetchedShelves
+  .filter((shelf) => shelf.name !== "")
+  .sort((a, b) => {
+    const aOrder = typeof a.order === "number" ? a.order : 9999;
+    const bOrder = typeof b.order === "number" ? b.order : 9999;
 
-    const normalizedShelves = mergedShelfNames.map((name, index) => {
-      const existing = dbShelves.find((shelf) => shelf.name === name);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.name.localeCompare(b.name, "ja");
+  })
+  .map((shelf) => shelf.name);
 
-      return {
-        name,
-        order: existing?.order ?? index,
-      };
-    });
-
-    const sortedShelves = normalizedShelves
-      .sort((a, b) => {
-        const aOrder = getShelfSortOrder(a.name, a.order);
-        const bOrder = getShelfSortOrder(b.name, b.order);
-
-        if (aOrder !== bOrder) {
-          return aOrder - bOrder;
-        }
-
-        return a.name.localeCompare(b.name, "ja");
-      })
-      .map((shelf) => shelf.name);
-
-    const finalShelfList = [
-      "未分類",
-      ...sortedShelves.filter((name) => name !== "未分類"),
-    ];
-
-    setShelfList(finalShelfList);
-  };
+  setShelfList(sortedShelves);
+};
 
   if (!user) {
     setBooks([]);
@@ -202,16 +179,16 @@ export default function Home() {
   }
 
   const fetchAll = async () => {
-    try {
-      setLoading(true);
-      const bookList = await fetchBooks();
-      await fetchShelves(bookList);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    await fetchBooks();
+    await fetchShelves();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   fetchAll();
 }, [user]);
@@ -230,11 +207,65 @@ const handleLogout = async () => {
   await signOut(auth);
 };
 
-  const handleTagClick = (tag: string) => {
-    setSelectedTag(tag);
-    setTagFilterText(tag);
+  const handleAddFilterTag = (tag: string) => {
+  const trimmed = tag.trim();
+  if (!trimmed) return;
+
+  const exists = selectedTags.some(
+    (item) => item.toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (exists) {
+    setTagFilterText("");
     setShowTagFilterSuggestions(false);
-  };
+    return;
+  }
+
+  setSelectedTags((prev) => [...prev, trimmed]);
+  setTagFilterText("");
+  setShowTagFilterSuggestions(false);
+};
+
+const handleRemoveFilterTag = (tagToRemove: string) => {
+  setSelectedTags((prev) =>
+    prev.filter((tag) => tag !== tagToRemove)
+  );
+};
+
+const handleTagFilterKeyDown = (
+  e: React.KeyboardEvent<HTMLInputElement>
+) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    if (activeTagIndex >= 0 && filteredTagOptions[activeTagIndex]) {
+      handleAddFilterTag(filteredTagOptions[activeTagIndex]);
+    } else {
+      handleAddFilterTag(tagFilterText);
+    }
+
+    setActiveTagIndex(-1);
+  }
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    setActiveTagIndex((prev) =>
+      Math.min(prev + 1, filteredTagOptions.length - 1)
+    );
+  }
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    setActiveTagIndex((prev) =>
+      Math.max(prev - 1, 0)
+    );
+  }
+
+  if (e.key === "Backspace" && !tagFilterText.trim() && selectedTags.length > 0) {
+    e.preventDefault();
+    handleRemoveFilterTag(selectedTags[selectedTags.length - 1]);
+  }
+};
 
   const allTags = Array.from(
     new Set(
@@ -261,9 +292,16 @@ const handleLogout = async () => {
           ? true
           : (book.status || "未読") === selectedStatus;
 
-      const matchesTag = selectedTag
-        ? Array.isArray(book.tags) && book.tags.includes(selectedTag)
-        : true;
+      const matchesTag =
+  selectedTags.length === 0
+    ? true
+    : selectedTags.every(
+        (selectedTag) =>
+          Array.isArray(book.tags) &&
+          book.tags.some(
+            (tag) => tag.toLowerCase() === selectedTag.toLowerCase()
+          )
+      );
 
       const matchesOwned =
         selectedOwned === "すべて"
@@ -327,7 +365,7 @@ const handleLogout = async () => {
     selectedStatus,
     selectedOwned,
     searchText,
-    selectedTag,
+    selectedTags,
     sortOrder,
   ]);
 
@@ -461,6 +499,23 @@ if (user.email !== ALLOWED_EMAIL) {
           <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
 
           <div className="headerButtons">
+
+      <Link
+  href="/data"
+  style={ui.button.secondary}
+  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonSecondary)}
+  onMouseLeave={clearHoverStyle}
+>
+  データ管理
+</Link>      
+            <Link
+  href="/tags"
+  style={ui.button.secondary}
+  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonSecondary)}
+  onMouseLeave={clearHoverStyle}
+>
+  タグを編集
+</Link>
             <Link
   href="/shelves"
   style={ui.button.secondary}
@@ -494,17 +549,45 @@ if (user.email !== ALLOWED_EMAIL) {
             本を検索
           </label>
 
-          <input
-            id="searchText"
-            type="text"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
-            style={ui.input.base}
-          />
+          <div style={{ position: "relative" }}>
+  <input
+    id="searchText"
+    type="text"
+    value={searchText}
+    onChange={(e) => setSearchText(e.target.value)}
+    placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
+    style={{
+      ...ui.input.base,
+      paddingRight: "36px",
+    }}
+    onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    // 何もしなくてOK（リアルタイム検索だから）
+  }
+}}
+  />
 
-          <p style={ui.text.helper}>タグで絞り込みできます</p>
-        </div>
+  {searchText && (
+    <button
+      onClick={() => setSearchText("")}
+      style={{
+        position: "absolute",
+        right: "8px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        fontSize: "16px",
+        color: ui.colors.subText,
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
+</div>
 
         <button
   type="button"
@@ -527,26 +610,100 @@ if (user.email !== ALLOWED_EMAIL) {
               タグで絞り込み
             </label>
 
-            <input
-              id="tagFilter"
-              type="text"
-              value={tagFilterText}
-              onChange={(e) => {
-                setTagFilterText(e.target.value);
-                setShowTagFilterSuggestions(true);
-                if (e.target.value.trim() === "") {
-                  setSelectedTag("");
-                }
-              }}
-              onFocus={() => setShowTagFilterSuggestions(true)}
-              onBlur={() => {
-                setTimeout(() => {
-                  setShowTagFilterSuggestions(false);
-                }, 150);
-              }}
-              placeholder="タグ名を入力して絞り込み"
-              style={ui.input.base}
-            />
+            <div
+  style={{
+    ...ui.input.base,
+    minHeight: "48px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    alignItems: "center",
+    padding: "8px 10px",
+    position: "relative",
+  }}
+>
+  {selectedTags.map((tag, index) => (
+    <span
+      key={`${tag}-${index}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        background: ui.colors.tagBg,
+        color: ui.colors.tagText,
+        padding: "6px 10px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        lineHeight: 1,
+      }}
+    >
+      #{tag}
+      <button
+        type="button"
+        onClick={() => handleRemoveFilterTag(tag)}
+        style={{
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          color: ui.colors.tagText,
+          fontSize: "14px",
+          padding: 0,
+          lineHeight: 1,
+        }}
+        aria-label={`${tag} を削除`}
+      >
+        ×
+      </button>
+    </span>
+  ))}
+
+  <input
+  id="tagFilter"
+  type="text"
+  value={tagFilterText}
+  onChange={(e) => {
+    setTagFilterText(e.target.value);
+    setShowTagFilterSuggestions(true);
+  }}
+  onKeyDown={handleTagFilterKeyDown}
+  onFocus={() => setShowTagFilterSuggestions(true)}
+  onBlur={() => {
+    setTimeout(() => {
+      setShowTagFilterSuggestions(false);
+    }, 150);
+  }}
+  placeholder="タグ名を入力して Enter で追加"
+  style={{
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    flex: 1,
+    minWidth: "140px",
+    fontSize: "14px",
+    color: ui.colors.text,
+    paddingRight: "28px",
+  }}
+/>
+
+{tagFilterText && (
+  <button
+    onClick={() => setTagFilterText("")}
+    style={{
+      position: "absolute",
+      right: "10px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontSize: "14px",
+      color: ui.colors.subText,
+    }}
+  >
+    ×
+  </button>
+)}
+</div>
 
             {showTagFilterSuggestions &&
               tagFilterText.trim() !== "" &&
@@ -566,18 +723,21 @@ if (user.email !== ALLOWED_EMAIL) {
                     zIndex: 10,
                   }}
                 >
-                  {filteredTagOptions.slice(0, 10).map((tag) => (
+                  {filteredTagOptions.slice(0, 10).map((tag, index) => (
                     <button
                       key={tag}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleTagClick(tag)}
+                      onClick={() => handleAddFilterTag(tag)}
                       style={{
                         display: "block",
                         width: "100%",
                         textAlign: "left",
                         padding: "10px 12px",
-                        background: ui.colors.cardBg,
+                        background:
+  index === activeTagIndex
+    ? ui.colors.hoverBg
+    : ui.colors.cardBg,
                         border: "none",
                         borderBottom: `1px solid ${ui.colors.borderSoft}`,
                         cursor: "pointer",
@@ -677,10 +837,10 @@ if (user.email !== ALLOWED_EMAIL) {
           </h2>
 
           {(selectedShelf ||
-            searchText ||
-            selectedTag ||
-            selectedStatus !== "すべて" ||
-            selectedOwned !== "すべて") && (
+  searchText ||
+  selectedTags.length > 0 ||
+  selectedStatus !== "すべて" ||
+  selectedOwned !== "すべて") && (
             <div
               style={{
                 display: "flex",
@@ -712,19 +872,19 @@ if (user.email !== ALLOWED_EMAIL) {
 </button>
               )}
 
-              {selectedTag && (
-                <button
-  onClick={() => {
-    setSelectedTag("");
-    setTagFilterText("");
-  }}
-  style={ui.button.muted}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonMuted)}
-  onMouseLeave={clearHoverStyle}
->
-  タグ絞り込みを解除
-</button>
-              )}
+              {selectedTags.length > 0 && (
+  <button
+    onClick={() => {
+      setSelectedTags([]);
+      setTagFilterText("");
+    }}
+    style={ui.button.muted}
+    onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonMuted)}
+    onMouseLeave={clearHoverStyle}
+  >
+    タグ絞り込みを解除
+  </button>
+)}
 
               {selectedStatus !== "すべて" && (
                 <button
@@ -818,11 +978,11 @@ if (user.email !== ALLOWED_EMAIL) {
                           {normalizeShelfName(book.shelf)}
                         </span>
 
-                        <span
-                          style={book.owned ? ui.badge.owned : ui.badge.notOwned}
-                        >
-                          {book.owned ? "所持" : "未所持"}
-                        </span>
+                        {book.owned && (
+  <span style={ui.badge.owned}>
+    所持
+  </span>
+)}
                       </div>
                     </div>
                   </div>
