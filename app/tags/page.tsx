@@ -367,33 +367,36 @@ export default function TagsPage() {
         }
 
         @media (max-width: 768px) {
-          .addArea {
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .addArea {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-          .row {
-            grid-template-columns: 1fr;
-            align-items: start;
-          }
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
 
-          .actions {
-            justify-content: flex-start;
-          }
+  .actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
 
-          .editRow {
-            grid-template-columns: 1fr;
-          }
+  .editRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
 
-          .editActions {
-            width: 100%;
-          }
+  .editActions {
+    width: auto;
+    flex-wrap: nowrap;
+  }
 
-          .editActions button,
-          .actions button {
-            flex: 1;
-          }
-        }
+  .editActions button,
+  .actions button {
+    flex: 0 0 auto;
+  }
+}
       `}</style>
 
       <div className="pageWrap">

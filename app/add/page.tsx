@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
 import {
@@ -16,6 +15,7 @@ import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../../lib/ui"
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { searchBooks, BookSearchItem } from "@/lib/bookSearch";
+import BottomNav from "../../components/BottomNav";
 
 type BookInfo = BookSearchItem;
 
@@ -246,7 +246,14 @@ const isDuplicateIsbn = async (isbn: string) => {
 };
 
   return (
-    <main style={ui.layout.page}>
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    
+    >
+
       <style jsx>{`
         .pageWrap {
           max-width: 820px;
@@ -309,9 +316,6 @@ const isDuplicateIsbn = async (isbn: string) => {
       `}</style>
 
       <div className="pageWrap">
-        <Link href="/" style={{ ...ui.button.secondary, display: "inline-block", marginBottom: "20px" }}>
-          ← 戻る
-        </Link>
 
         <h1 style={ui.layout.sectionTitle}>本を追加</h1>
         <p style={ui.layout.sectionDescription}>
@@ -484,11 +488,6 @@ onMouseLeave={(e) => {
     : "Google Books"}
 </p>
 
-{result.description && (
-  <p style={{ fontSize: "13px", marginTop: "4px" }}>
-    {result.description.slice(0, 80)}...
-  </p>
-)}
                   </div>
                 </div>
               ))}
@@ -668,6 +667,7 @@ onMouseLeave={(e) => {
           </div>
         </div>
       </div>
+    <BottomNav />
     </main>
   );
 }

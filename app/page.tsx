@@ -14,6 +14,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import BottomNav from "../components/BottomNav";
 
 type SavedBook = {
   id: string;
@@ -375,7 +376,12 @@ const handleTagFilterKeyDown = (
 
 if (!user) {
   return (
-    <main style={ui.layout.page}>
+    <main
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       <div style={{ maxWidth: "400px", margin: "100px auto" }}>
         <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
 
@@ -395,7 +401,12 @@ const ALLOWED_EMAIL = "asako.hafs@gmail.com";
 
 if (user.email !== ALLOWED_EMAIL) {
   return (
-    <main style={ui.layout.page}>
+    <main
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       <div style={{ maxWidth: "400px", margin: "100px auto" }}>
         <p>このアカウントでは利用できません</p>
 
@@ -408,7 +419,12 @@ if (user.email !== ALLOWED_EMAIL) {
 }
 
   return (
-    <main style={ui.layout.page}>
+    <main
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       <style jsx>{`
         .pageWrap {
           max-width: 820px;
@@ -416,18 +432,7 @@ if (user.email !== ALLOWED_EMAIL) {
         }
 
         .pageHeader {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
           margin-bottom: 16px;
-          flex-wrap: wrap;
-        }
-
-        .headerButtons {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
         }
 
         .filtersGrid {
@@ -456,20 +461,6 @@ if (user.email !== ALLOWED_EMAIL) {
           display: none;
         }
 
-        @media (max-width: 768px) {
-          .pageHeader {
-            align-items: flex-start;
-          }
-
-          .headerButtons {
-            width: 100%;
-          }
-
-          .headerButtons :global(a) {
-            flex: 1;
-            text-align: center;
-          }
-
           .filtersGrid {
             grid-template-columns: 1fr;
           }
@@ -497,51 +488,6 @@ if (user.email !== ALLOWED_EMAIL) {
       <div className="pageWrap">
         <div className="pageHeader">
           <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
-
-          <div className="headerButtons">
-
-      <Link
-  href="/data"
-  style={ui.button.secondary}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonSecondary)}
-  onMouseLeave={clearHoverStyle}
->
-  データ管理
-</Link>      
-            <Link
-  href="/tags"
-  style={ui.button.secondary}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonSecondary)}
-  onMouseLeave={clearHoverStyle}
->
-  タグを編集
-</Link>
-            <Link
-  href="/shelves"
-  style={ui.button.secondary}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonSecondary)}
-  onMouseLeave={clearHoverStyle}
->
-              棚を編集
-            </Link>
-
-            <Link
-  href="/add"
-  style={ui.button.primary}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonPrimary)}
-  onMouseLeave={clearHoverStyle}
->
-              ＋ 本を追加
-            </Link>
-            <button
-  onClick={handleLogout}
-  style={ui.button.muted}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonMuted)}
-  onMouseLeave={clearHoverStyle}
->
-  ログアウト
-</button>
-          </div>
         </div>
 
         <div style={{ marginBottom: "24px", maxWidth: "640px" }}>
@@ -992,6 +938,7 @@ if (user.email !== ALLOWED_EMAIL) {
           )}
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }
