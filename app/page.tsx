@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -15,6 +14,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import BottomNav from "../components/BottomNav";
+import { isAllowedEmail } from "../lib/authGuard";
 
 type SavedBook = {
   id: string;
@@ -62,16 +62,6 @@ export default function Home() {
     return trimmed ? trimmed : "未分類";
   };
 
-  const getShelfSortOrder = (name: string, order?: number) => {
-    if (name === "未分類") return -1;
-    if (typeof order === "number") return order;
-
-    const defaultIndex = defaultShelves.indexOf(name);
-    if (defaultIndex >= 0) return defaultIndex;
-
-    return 9999;
-  };
-
   const [books, setBooks] = useState<SavedBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [shelfList, setShelfList] = useState<string[]>(defaultShelves);
@@ -105,11 +95,7 @@ export default function Home() {
       return [];
     }
 
-    const q = query(
-      collection(db, "books"),
-      where("uid", "==", user.uid)
-    );
-
+    const q = query(collection(db, "books"), where("uid", "==", user.uid));
     const querySnapshot = await getDocs(q);
 
     const bookList: SavedBook[] = querySnapshot.docs.map((doc) => ({
@@ -139,38 +125,33 @@ export default function Home() {
   };
 
   const fetchShelves = async () => {
-  if (!user) {
-    setShelfList([]);
-    return;
-  }
+    if (!user) {
+      setShelfList(defaultShelves);
+      return;
+    }
 
-  const q = query(
-    collection(db, "shelves"),
-    where("uid", "==", user.uid)
-  );
+    const q = query(collection(db, "shelves"), where("uid", "==", user.uid));
+    const querySnapshot = await getDocs(q);
 
-  const querySnapshot = await getDocs(q);
+    const fetchedShelves: Shelf[] = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      name: (doc.data().name || "").trim(),
+      order: typeof doc.data().order === "number" ? doc.data().order : 9999,
+    }));
 
-  const fetchedShelves: Shelf[] = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    name: (doc.data().name || "").trim(),
-    order:
-      typeof doc.data().order === "number" ? doc.data().order : 9999,
-  }));
+    const sortedShelves = fetchedShelves
+      .filter((shelf) => shelf.name !== "")
+      .sort((a, b) => {
+        const aOrder = typeof a.order === "number" ? a.order : 9999;
+        const bOrder = typeof b.order === "number" ? b.order : 9999;
 
-  const sortedShelves = fetchedShelves
-  .filter((shelf) => shelf.name !== "")
-  .sort((a, b) => {
-    const aOrder = typeof a.order === "number" ? a.order : 9999;
-    const bOrder = typeof b.order === "number" ? b.order : 9999;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.name.localeCompare(b.name, "ja");
+      })
+      .map((shelf) => shelf.name);
 
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return a.name.localeCompare(b.name, "ja");
-  })
-  .map((shelf) => shelf.name);
-
-  setShelfList(sortedShelves);
-};
+    setShelfList(sortedShelves.length > 0 ? sortedShelves : defaultShelves);
+  };
 
   if (!user) {
     setBooks([]);
@@ -180,16 +161,16 @@ export default function Home() {
   }
 
   const fetchAll = async () => {
-  try {
-    setLoading(true);
-    await fetchBooks();
-    await fetchShelves();
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      await fetchBooks();
+      await fetchShelves();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   fetchAll();
 }, [user]);
@@ -371,23 +352,34 @@ const handleTagFilterKeyDown = (
   ]);
 
   if (authLoading) {
-  return <p style={ui.text.helper}>認証確認中...</p>;
-}
-
-if (!user) {
   return (
     <main
-  style={{
-    ...ui.layout.page,
-    paddingBottom: "96px",
-  }}
->
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
       <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-        <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
+        <p style={ui.text.helper}>認証確認中...</p>
+      </div>
+    </main>
+  );
+}
 
-        <p style={{ marginBottom: "16px" }}>
-          利用するにはログインしてください
-        </p>
+  if (!user) {
+    return (
+      <main
+        style={{
+          ...ui.layout.page,
+          paddingBottom: "96px",
+        }}
+      >
+        <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+          <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
+
+          <p style={{ marginBottom: "16px" }}>
+            利用するにはログインしてください
+          </p>
 
         <button style={ui.button.primary} onClick={handleLogin}>
           Googleでログイン
@@ -397,18 +389,17 @@ if (!user) {
   );
 }
 
-const ALLOWED_EMAIL = "asako.hafs@gmail.com";
-
-if (user.email !== ALLOWED_EMAIL) {
-  return (
-    <main
-  style={{
-    ...ui.layout.page,
-    paddingBottom: "96px",
-  }}
->
-      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-        <p>このアカウントでは利用できません</p>
+  if (!isAllowedEmail(user.email)) {
+    return (
+      <main
+        style={{
+          ...ui.layout.page,
+          paddingBottom: "96px",
+        }}
+      >
+      
+        <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+          <p>このアカウントでは利用できません</p>
 
         <button style={ui.button.muted} onClick={handleLogout}>
           ログアウト
@@ -426,64 +417,65 @@ if (user.email !== ALLOWED_EMAIL) {
   }}
 >
       <style jsx>{`
-        .pageWrap {
-          max-width: 820px;
-          margin: 0 auto;
-        }
+  .pageWrap {
+    max-width: 820px;
+    margin: 0 auto;
+  }
 
-        .pageHeader {
-          margin-bottom: 16px;
-        }
+  .pageHeader {
+    margin-bottom: 16px;
+  }
 
-        .filtersGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(240px, 1fr));
-          gap: 16px;
-          margin-bottom: 28px;
-        }
+  .filtersGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
 
-        .booksGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-          margin-top: 16px;
-        }
+  .booksGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
 
-        .bookCard {
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
+  .bookCard {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
 
-        .filterBox {
-          width: 100%;
-        }
+  .filterBox {
+    width: 100%;
+  }
 
-        .filterToggleButton {
-          display: none;
-        }
+  .filterToggleButton {
+    display: none;
+  }
 
-          .filtersGrid {
-            grid-template-columns: 1fr;
-          }
+  @media (max-width: 768px) {
+    .filtersGrid {
+      grid-template-columns: 1fr;
+    }
 
-          .booksGrid {
-            grid-template-columns: 1fr;
-          }
+    .booksGrid {
+      grid-template-columns: 1fr;
+    }
 
-          .filterToggleButton {
-            display: inline-block;
-            width: 100%;
-            margin-bottom: 16px;
-          }
+    .filterToggleButton {
+      display: inline-block;
+      width: 100%;
+      margin-bottom: 16px;
+    }
 
-          .filtersGrid.filtersMobileHidden {
-            display: none;
-          }
+    .filtersGrid.filtersMobileHidden {
+      display: none;
+    }
 
-          .filtersGrid.filtersMobileVisible {
-            display: grid;
-          }
-        }
-      `}</style>
+    .filtersGrid.filtersMobileVisible {
+      display: grid;
+    }
+  }
+`}</style>
 
       <div className="pageWrap">
         <div className="pageHeader">

@@ -6,14 +6,65 @@ import { auth } from "../../lib/firebase";
 import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../../lib/ui";
 import BottomNav from "../../components/BottomNav";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { isAllowedEmail } from "../../lib/authGuard";
 
 export default function ManagePage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    setUser(currentUser);
+    setAuthLoading(false);
+  });
+
+  return () => unsubscribe();
+}, []);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/");
   };
+
+  if (authLoading) {
+  return (
+    <main style={ui.layout.page}>
+      <p style={ui.text.helper}>認証確認中...</p>
+    </main>
+  );
+}
+
+  if (!user) {
+  return (
+    <main style={ui.layout.page}>
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p style={ui.text.helper}>ログインしてください</p>
+      </div>
+    </main>
+  );
+}
+
+  if (!isAllowedEmail(user.email)) {
+  return (
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p>このアカウントでは利用できません</p>
+
+        <button style={ui.button.muted} onClick={handleLogout}>
+          ログアウト
+        </button>
+      </div>
+    </main>
+  );
+}
 
   return (
     <main

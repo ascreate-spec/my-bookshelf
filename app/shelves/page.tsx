@@ -17,6 +17,9 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ui } from "../../lib/ui";
+import { isAllowedEmail } from "../../lib/authGuard";
+import { signOut } from "firebase/auth";
+import BottomNav from "../../components/BottomNav";
 
 type Shelf = {
   id: string;
@@ -345,9 +348,31 @@ setShelves(list);
       </main>
     );
   }
-
+  
+  if (!isAllowedEmail(user.email)) {
   return (
     <main style={ui.layout.page}>
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p>このアカウントでは利用できません</p>
+
+        <button
+          style={ui.button.muted}
+          onClick={async () => await signOut(auth)}
+        >
+          ログアウト
+        </button>
+      </div>
+    </main>
+  );
+}
+
+  return (
+    <main
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       <style jsx>{`
         .pageWrap {
           max-width: 820px;
@@ -608,6 +633,7 @@ setShelves(list);
           </div>
         )}
       </div>
+      <BottomNav />
     </main>
   );
 }

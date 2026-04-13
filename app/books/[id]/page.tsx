@@ -15,8 +15,11 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { useParams, useRouter } from "next/navigation";
+import { isAllowedEmail } from "../../../lib/authGuard";
+import BottomNav from "../../../components/BottomNav";
+
 
 type SavedBook = {
   id: string;
@@ -238,9 +241,9 @@ const [tagInput, setTagInput] = useState("");
     }
   };
 
-  if (!authLoading) {
-    fetchAll();
-  }
+    if (authLoading) return;
+
+  fetchAll();
 }, [bookId, router, user, authLoading]);
 
   const handleEditChange = (field: keyof EditForm, value: string) => {
@@ -431,8 +434,32 @@ const handleSave = async () => {
     );
   }
 
+  if (!isAllowedEmail(user.email)) {
   return (
     <main style={ui.layout.page}>
+      <div style={ui.layout.pageWrap}>
+        <p>このアカウントでは利用できません</p>
+
+        <button
+          style={ui.button.muted}
+          onClick={async () => {
+            await signOut(auth);
+            router.push("/");
+          }}
+        >
+          ログアウト
+        </button>
+      </div>
+    </main>
+  );
+}
+  return (
+  <main
+    style={{
+      ...ui.layout.page,
+      paddingBottom: "96px",
+    }}
+  >
       <style jsx>{`
         .pageWrap {
           max-width: 760px;
@@ -904,6 +931,7 @@ const handleSave = async () => {
           </div>
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }

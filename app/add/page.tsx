@@ -13,9 +13,10 @@ import {
 import { useRouter } from "next/navigation";
 import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../../lib/ui";
 import { auth } from "../../lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { searchBooks, BookSearchItem } from "@/lib/bookSearch";
 import BottomNav from "../../components/BottomNav";
+import { isAllowedEmail } from "../../lib/authGuard";
 
 type BookInfo = BookSearchItem;
 
@@ -31,6 +32,7 @@ export default function AddBookPage() {
   const [manualPublisher, setManualPublisher] = useState("");
   const [manualIsbn, setManualIsbn] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
 
   const ensureTagsExist = async (uid: string, tags: string[]) => {
@@ -73,6 +75,7 @@ export default function AddBookPage() {
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
     setUser(currentUser);
+    setAuthLoading(false);
   });
 
   return () => unsubscribe();
@@ -244,6 +247,55 @@ const isDuplicateIsbn = async (isbn: string) => {
     setMessage("保存に失敗しました");
   }
 };
+
+if (authLoading) {
+  return (
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p style={ui.text.helper}>認証確認中...</p>
+      </div>
+    </main>
+  );
+}
+
+if (!user) {
+  return (
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p style={ui.text.helper}>ログインしてください</p>
+      </div>
+    </main>
+  );
+}
+
+if (!isAllowedEmail(user.email)) {
+  return (
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
+      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <p>このアカウントでは利用できません</p>
+
+        <button style={ui.button.muted} onClick={async () => await signOut(auth)}>
+  ログアウト
+</button>
+      </div>
+    </main>
+  );
+}
 
   return (
     <main
