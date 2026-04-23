@@ -18,6 +18,11 @@ import { searchBooks, BookSearchItem } from "@/lib/bookSearch";
 import BottomNav from "../../components/BottomNav";
 import { isAllowedEmail } from "../../lib/authGuard";
 
+function normalizeThumbnailUrl(url: string): string {
+  if (!url) return "";
+  return url.trim().replace(/^http:\/\//i, "https://");
+}
+
 type BookInfo = BookSearchItem;
 
 export default function AddBookPage() {
@@ -26,14 +31,25 @@ export default function AddBookPage() {
   const [message, setMessage] = useState("");
   const [searchResults, setSearchResults] = useState<BookInfo[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthors, setManualAuthors] = useState("");
   const [manualPublisher, setManualPublisher] = useState("");
   const [manualIsbn, setManualIsbn] = useState("");
+
+  const [subTitle, setSubTitle] = useState("");
+  const [seriesName, setSeriesName] = useState("");
+  const [isEbook, setIsEbook] = useState(false);
+
+  const [manualSubTitle, setManualSubTitle] = useState("");
+  const [manualSeriesName, setManualSeriesName] = useState("");
+  const [manualIsEbook, setManualIsEbook] = useState(false);
+
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
+  
 
   const ensureTagsExist = async (uid: string, tags: string[]) => {
   const normalizedTags = Array.from(
@@ -113,6 +129,9 @@ const isDuplicateIsbn = async (isbn: string) => {
     return;
   }
 
+  if (searching) return;
+
+  setSearching(true);
   setSelectedIndex(null);
   setMessage("検索中...");
   setBook(null);
@@ -131,6 +150,8 @@ const isDuplicateIsbn = async (isbn: string) => {
   } catch (error) {
     console.error(error);
     setMessage("検索に失敗しました");
+  } finally {
+    setSearching(false);
   }
 };
 
@@ -157,21 +178,24 @@ const isDuplicateIsbn = async (isbn: string) => {
     }
 
     await addDoc(collection(db, "books"), {
-      isbn: normalizedIsbn,
-      title: book.title,
-      author: book.authors.length > 0 ? book.authors.join(", ") : "",
-      authors: book.authors,
-      publisher: book.publisher,
-      image: book.thumbnail || "",
-      shelf: "未分類",
-      status: "未読",
-      finishedDate: "",
-      memo: "",
-      tags: [],
-      owned: false,
-      uid: user.uid,
-      createdAt: new Date(),
-    });
+  isbn: normalizedIsbn,
+  title: book.title,
+  subTitle: subTitle.trim(),
+  seriesName: seriesName.trim(),
+  isEbook,
+  author: book.authors.length > 0 ? book.authors.join(", ") : "",
+  authors: book.authors,
+  publisher: book.publisher,
+  image: normalizeThumbnailUrl(book.thumbnail || ""),
+  shelf: "未分類",
+  status: "未読",
+  finishedDate: "",
+  memo: "",
+  tags: [],
+  owned: false,
+  uid: user.uid,
+  createdAt: new Date(),
+});
 
     setMessage("追加しました！");
     setTimeout(() => {
@@ -182,6 +206,10 @@ const isDuplicateIsbn = async (isbn: string) => {
     setKeyword("");
     setSearchResults([]);
     setSelectedIndex(null);
+    setSubTitle("");
+    setSeriesName("");
+    setIsEbook(false);
+
   } catch (error) {
     console.error(error);
     setMessage("保存に失敗しました");
@@ -214,24 +242,27 @@ const isDuplicateIsbn = async (isbn: string) => {
     }
 
     await addDoc(collection(db, "books"), {
-      isbn: normalizedIsbn,
-      title: manualTitle.trim(),
-      author: manualAuthors.trim(),
-      authors: manualAuthors
-        ? manualAuthors.split(",").map((a) => a.trim())
-        : [],
-      publisher: manualPublisher.trim(),
-      image: "",
-      shelf: "未分類",
-      status: "未読",
-      finishedDate: "",
-      memo: "",
-      tags: [],
-      owned: false,
-      uid: user.uid,
-      createdAt: new Date(),
-      isManual: true,
-    });
+  isbn: normalizedIsbn,
+  title: manualTitle.trim(),
+  subTitle: manualSubTitle.trim(),
+  seriesName: manualSeriesName.trim(),
+  isEbook: manualIsEbook,
+  author: manualAuthors.trim(),
+  authors: manualAuthors
+    ? manualAuthors.split(",").map((a) => a.trim())
+    : [],
+  publisher: manualPublisher.trim(),
+  image: "",
+  shelf: "未分類",
+  status: "未読",
+  finishedDate: "",
+  memo: "",
+  tags: [],
+  owned: false,
+  uid: user.uid,
+  createdAt: new Date(),
+  isManual: true,
+});
 
     setMessage("追加しました！");
     setTimeout(() => {
@@ -242,6 +273,10 @@ const isDuplicateIsbn = async (isbn: string) => {
     setManualAuthors("");
     setManualPublisher("");
     setManualIsbn("");
+    setManualSubTitle("");
+    setManualSeriesName("");
+    setManualIsEbook(false);
+
   } catch (error) {
     console.error(error);
     setMessage("保存に失敗しました");
@@ -424,12 +459,17 @@ if (!isAllowedEmail(user.email)) {
 </div>
 
           <button
-            onClick={handleSearch}
-            className="actionButton"
-            style={ui.button.primary}
-          >
-            検索
-          </button>
+  onClick={handleSearch}
+  disabled={searching}
+  className="actionButton"
+  style={{
+    ...ui.button.primary,
+    opacity: searching ? 0.7 : 1,
+    cursor: searching ? "not-allowed" : "pointer",
+  }}
+>
+  {searching ? "検索中..." : "検索"}
+</button>
 
           {message && (
             <p
@@ -459,9 +499,12 @@ if (!isAllowedEmail(user.email)) {
                 <div
                   key={index}
                   onClick={() => {
-                    setBook(result);
-                    setSelectedIndex(index);
-                  }}
+  setBook(result);
+  setSelectedIndex(index);
+  setSubTitle("");
+  setSeriesName("");
+  setIsEbook(false);
+}}
                   className="resultCard"
                   onMouseEnter={(e) => {
   Object.assign(e.currentTarget.style, ui.card.hover);
@@ -483,7 +526,7 @@ onMouseLeave={(e) => {
                 >
                   {result.thumbnail && (
   <img
-    src={result.thumbnail}
+    src={normalizeThumbnailUrl(result.thumbnail)}
     alt="表紙"
     style={{
       width: "60px",
@@ -552,7 +595,7 @@ onMouseLeave={(e) => {
             <div className="selectedArea">
               {book.thumbnail && (
   <img
-    src={book.thumbnail}
+    src={normalizeThumbnailUrl(book.thumbnail)}
                   alt="表紙"
                   style={{
                     width: "120px",
@@ -607,6 +650,51 @@ onMouseLeave={(e) => {
               >
                 <strong>ISBN:</strong> {book.isbn || "なし"}
               </p>
+
+              <label style={ui.input.label}>サブタイトル</label>
+<input
+  type="text"
+  value={subTitle}
+  onChange={(e) => setSubTitle(e.target.value)}
+  style={{ ...ui.input.base, marginBottom: "12px" }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  }}
+/>
+
+<label style={ui.input.label}>シリーズ名</label>
+<input
+  type="text"
+  value={seriesName}
+  onChange={(e) => setSeriesName(e.target.value)}
+  style={{ ...ui.input.base, marginBottom: "12px" }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  }}
+/>
+
+<label
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginTop: "4px",
+    color: ui.colors.text,
+  }}
+>
+  <input
+    type="checkbox"
+    checked={isEbook}
+    onChange={(e) => setIsEbook(e.target.checked)}
+  />
+  電子書籍
+</label>
 
               <button
                 onClick={handleSave}
@@ -667,6 +755,20 @@ onMouseLeave={(e) => {
 }}
             />
 
+            <label style={ui.input.label}>サブタイトル</label>
+<input
+  type="text"
+  value={manualSubTitle}
+  onChange={(e) => setManualSubTitle(e.target.value)}
+  style={{ ...ui.input.base, marginBottom: "12px" }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleManualSave();
+    }
+  }}
+/>
+
             <label style={ui.input.label}>著者</label>
             <input
               type="text"
@@ -694,6 +796,37 @@ onMouseLeave={(e) => {
   }
 }}
             />
+            <label style={ui.input.label}>シリーズ名</label>
+<input
+  type="text"
+  value={manualSeriesName}
+  onChange={(e) => setManualSeriesName(e.target.value)}
+  style={{ ...ui.input.base, marginBottom: "12px" }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleManualSave();
+    }
+  }}
+/>
+
+<label
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "12px",
+    color: ui.colors.text,
+  }}
+>
+  <input
+    type="checkbox"
+    checked={manualIsEbook}
+    onChange={(e) => setManualIsEbook(e.target.checked)}
+  />
+  電子書籍
+</label>
+
 
             <label style={ui.input.label}>ISBN（任意）</label>
             <input

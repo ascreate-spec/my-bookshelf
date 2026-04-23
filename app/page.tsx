@@ -19,6 +19,9 @@ import { isAllowedEmail } from "../lib/authGuard";
 type SavedBook = {
   id: string;
   title: string;
+  subTitle?: string;
+  seriesName?: string;
+  isEbook?: boolean;
   isbn: string;
   publisher?: string;
   author?: string;
@@ -62,6 +65,15 @@ export default function Home() {
     return trimmed ? trimmed : "未分類";
   };
 
+  const normalizeThumbnailUrl = (url: string | undefined | null) => {
+  const trimmed = (url || "").trim();
+  if (!trimmed) return "";
+
+  let normalized = trimmed.replace(/^http:\/\//i, "https://");
+
+  return normalized;
+};
+
   const [books, setBooks] = useState<SavedBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [shelfList, setShelfList] = useState<string[]>(defaultShelves);
@@ -99,21 +111,24 @@ export default function Home() {
     const querySnapshot = await getDocs(q);
 
     const bookList: SavedBook[] = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      title: doc.data().title || "タイトルなし",
-      isbn: doc.data().isbn || "",
-      publisher: doc.data().publisher || "",
-      author: doc.data().author || "",
-      image: doc.data().image || "",
-      shelf: normalizeShelfName(doc.data().shelf),
-      status: doc.data().status || "未読",
-      finishedDate: doc.data().finishedDate || "",
-      memo: doc.data().memo || "",
-      tags: Array.isArray(doc.data().tags) ? doc.data().tags : [],
-      owned: doc.data().owned ?? false,
-      uid: doc.data().uid || "",
-      createdAt: doc.data().createdAt,
-    }));
+  id: doc.id,
+  title: doc.data().title || "タイトルなし",
+  subTitle: doc.data().subTitle || "",
+  seriesName: doc.data().seriesName || "",
+  isEbook: doc.data().isEbook ?? false,
+  isbn: doc.data().isbn || "",
+  publisher: doc.data().publisher || "",
+  author: doc.data().author || "",
+  image: doc.data().image || "",
+  shelf: normalizeShelfName(doc.data().shelf),
+  status: doc.data().status || "未読",
+  finishedDate: doc.data().finishedDate || "",
+  memo: doc.data().memo || "",
+  tags: Array.isArray(doc.data().tags) ? doc.data().tags : [],
+  owned: doc.data().owned ?? false,
+  uid: doc.data().uid || "",
+  createdAt: doc.data().createdAt,
+}));
 
     setBooks(
       bookList.sort(
@@ -301,18 +316,21 @@ const handleTagFilterKeyDown = (
       const tagsText = Array.isArray(book.tags) ? book.tags.join(" ") : "";
 
       const searchableText = [
-        book.title || "",
-        book.author || "",
-        book.isbn || "",
-        book.publisher || "",
-        normalizedShelf,
-        book.status || "",
-        book.finishedDate || "",
-        book.memo || "",
-        tagsText,
-      ]
-        .join(" ")
-        .toLowerCase();
+  book.title || "",
+  book.subTitle || "",
+  book.seriesName || "",
+  book.isEbook ? "電子書籍 ebook" : "",
+  book.author || "",
+  book.isbn || "",
+  book.publisher || "",
+  normalizedShelf,
+  book.status || "",
+  book.finishedDate || "",
+  book.memo || "",
+  tagsText,
+]
+  .join(" ")
+  .toLowerCase();
 
       return searchableText.includes(keyword);
     });
@@ -350,6 +368,41 @@ const handleTagFilterKeyDown = (
     selectedTags,
     sortOrder,
   ]);
+
+  const groupedBooks = useMemo(() => {
+  const groups = new Map<string, SavedBook[]>();
+  const singles: SavedBook[] = [];
+
+  filteredBooks.forEach((book) => {
+    const series = (book.seriesName || "").trim();
+
+    if (!series) {
+      singles.push(book);
+      return;
+    }
+
+    if (!groups.has(series)) {
+      groups.set(series, []);
+    }
+
+    groups.get(series)!.push(book);
+  });
+
+  const grouped = Array.from(groups.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], "ja"))
+    .map(([seriesName, books]) => ({
+      type: "series" as const,
+      seriesName,
+      books,
+    }));
+
+  const singleItems = singles.map((book) => ({
+    type: "single" as const,
+    book,
+  }));
+
+  return [...grouped, ...singleItems];
+}, [filteredBooks]);
 
   if (authLoading) {
   return (
@@ -861,16 +914,48 @@ const handleTagFilterKeyDown = (
           )}
 
           {!loading && filteredBooks.length > 0 && (
+  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    {groupedBooks.map((item, index) => {
+      if (item.type === "series") {
+        return (
+          <section key={`series-${item.seriesName}-${index}`}>
+            <div
+              style={{
+                marginBottom: "12px",
+                paddingBottom: "8px",
+                borderBottom: `1px solid ${ui.colors.border}`,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  color: ui.colors.text,
+                  fontSize: "18px",
+                }}
+              >
+                シリーズ：{item.seriesName}
+              </h3>
+              <p
+                style={{
+                  margin: "4px 0 0 0",
+                  color: ui.colors.subText,
+                  fontSize: "13px",
+                }}
+              >
+                {item.books.length}冊
+              </p>
+            </div>
+
             <div className="booksGrid">
-              {filteredBooks.map((book) => (
+              {item.books.map((book) => (
                 <div
-  key={book.id}
-  className="bookCard"
-  style={ui.card.clickable}
-  onClick={() => router.push(`/books/${book.id}`)}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
-  onMouseLeave={clearHoverStyle}
->
+                  key={book.id}
+                  className="bookCard"
+                  style={ui.card.clickable}
+                  onClick={() => router.push(`/books/${book.id}`)}
+                  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
+                  onMouseLeave={clearHoverStyle}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -878,10 +963,10 @@ const handleTagFilterKeyDown = (
                       alignItems: "flex-start",
                     }}
                   >
-                    {book.image && (
-                      <img
-                        src={book.image}
-                        alt="表紙"
+                    {normalizeThumbnailUrl(book.image) && (
+  <img
+    src={normalizeThumbnailUrl(book.image)}
+    alt="表紙"
                         style={{
                           width: "72px",
                           minWidth: "72px",
@@ -893,6 +978,19 @@ const handleTagFilterKeyDown = (
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={ui.text.title}>{book.title}</p>
+
+                      {book.subTitle && (
+                        <p
+                          style={{
+                            fontSize: "13px",
+                            color: ui.colors.subText,
+                            marginTop: "4px",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {book.subTitle}
+                        </p>
+                      )}
 
                       {book.author && (
                         <p style={ui.text.author}>{book.author}</p>
@@ -917,17 +1015,145 @@ const handleTagFilterKeyDown = (
                         </span>
 
                         {book.owned && (
-  <span style={ui.badge.owned}>
-    所持
-  </span>
-)}
+                          <span style={ui.badge.owned}>
+                            所持
+                          </span>
+                        )}
+
+                        {book.isEbook && (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              padding: "4px 8px",
+                              borderRadius: "999px",
+                              background: ui.colors.hoverBg,
+                              color: ui.colors.text,
+                              border: `1px solid ${ui.colors.border}`,
+                            }}
+                          >
+                            電子書籍
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </section>
+        );
+      }
+
+      return (
+        <section key={`single-${item.book.id}-${index}`}>
+          <div className="booksGrid">
+            <div
+              className="bookCard"
+              style={ui.card.clickable}
+              onClick={() => router.push(`/books/${item.book.id}`)}
+              onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
+              onMouseLeave={clearHoverStyle}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  alignItems: "flex-start",
+                }}
+              >
+                {normalizeThumbnailUrl(item.book.image) && (
+  <img
+    src={normalizeThumbnailUrl(item.book.image)}
+    alt="表紙"
+                    style={{
+                      width: "72px",
+                      minWidth: "72px",
+                      borderRadius: "6px",
+                      display: "block",
+                    }}
+                  />
+                )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={ui.text.title}>{item.book.title}</p>
+
+                  {item.book.subTitle && (
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: ui.colors.subText,
+                        marginTop: "4px",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {item.book.subTitle}
+                    </p>
+                  )}
+
+                  {item.book.author && (
+                    <p style={ui.text.author}>{item.book.author}</p>
+                  )}
+
+                  {item.book.seriesName && (
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: ui.colors.subText,
+                        marginTop: "4px",
+                      }}
+                    >
+                      シリーズ：{item.book.seriesName}
+                    </p>
+                  )}
+
+                  {Array.isArray(item.book.tags) && item.book.tags.length > 0 && (
+                    <p style={ui.text.tagsText}>
+                      {item.book.tags.map((tag) => `#${tag}`).join(" ")}
+                    </p>
+                  )}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "6px",
+                      marginTop: "10px",
+                    }}
+                  >
+                    <span style={ui.badge.shelf}>
+                      {normalizeShelfName(item.book.shelf)}
+                    </span>
+
+                    {item.book.owned && (
+                      <span style={ui.badge.owned}>
+                        所持
+                      </span>
+                    )}
+
+                    {item.book.isEbook && (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          padding: "4px 8px",
+                          borderRadius: "999px",
+                          background: ui.colors.hoverBg,
+                          color: ui.colors.text,
+                          border: `1px solid ${ui.colors.border}`,
+                        }}
+                      >
+                        電子書籍
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    })}
+  </div>
+)}
         </div>
       </div>
       <BottomNav />

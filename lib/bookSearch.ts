@@ -11,7 +11,12 @@ export type BookSearchItem = {
 };
 
 function normalizeIsbn(isbn: string): string {
-  return isbn.replace(/[^0-9X]/gi, "").trim();
+  return isbn.replace(/[^0-9X]/gi, "").trim().toUpperCase();
+}
+
+function normalizeThumbnailUrl(url: string): string {
+  if (!url) return "";
+  return url.trim().replace(/^http:\/\//i, "https://");
 }
 
 function getGoogleIsbn(industryIdentifiers: any[] = []): string {
@@ -21,6 +26,37 @@ function getGoogleIsbn(industryIdentifiers: any[] = []): string {
     industryIdentifiers.find((id) => id?.type === "ISBN_10")?.identifier ?? "";
 
   return normalizeIsbn(isbn13 || isbn10 || "");
+}
+
+function toBookSearchItem(item: any): BookSearchItem {
+  const info = item?.volumeInfo ?? {};
+  const isbn = getGoogleIsbn(info.industryIdentifiers ?? []);
+
+  const rawThumbnail =
+    info.imageLinks?.thumbnail ??
+    info.imageLinks?.smallThumbnail ??
+    "";
+
+  return {
+    title: info.title ?? "",
+    authors: Array.isArray(info.authors) ? info.authors : [],
+    publisher: info.publisher ?? "",
+    publishedDate: info.publishedDate ?? "",
+    description: info.description ?? "",
+    isbn,
+    thumbnail: normalizeThumbnailUrl(rawThumbnail),
+    pageCount: info.pageCount,
+    source: "google",
+  };
+}
+
+function buildDedupeKey(book: BookSearchItem): string {
+  if (book.isbn) return `isbn:${book.isbn}`;
+
+  const title = (book.title ?? "").trim().toLowerCase();
+  const author = (book.authors?.[0] ?? "").trim().toLowerCase();
+
+  return `meta:${title}:${author}`;
 }
 
 export async function searchGoogleBooks(
@@ -34,44 +70,42 @@ export async function searchGoogleBooks(
     ? [`isbn:${normalized}`, trimmed]
     : [trimmed, `intitle:${trimmed}`, `inauthor:${trimmed}`];
 
-  let foundItems: any[] = [];
+  const allItems: BookSearchItem[] = [];
 
   for (const q of queries) {
-    const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20`
-    );
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          q
+        )}&maxResults=20&orderBy=relevance&printType=books`,
+        { cache: "no-store" }
+      );
 
-    if (!res.ok) {
-      continue;
-    }
+      if (!res.ok) {
+        continue;
+      }
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (Array.isArray(data.items) && data.items.length > 0) {
-      foundItems = data.items;
-      break;
+      if (Array.isArray(data.items)) {
+        allItems.push(...data.items.map(toBookSearchItem));
+      }
+    } catch (error) {
+      console.error("Google Books search failed:", q, error);
     }
   }
 
-  return foundItems.map((item: any) => {
-    const info = item.volumeInfo ?? {};
-    const isbn = getGoogleIsbn(info.industryIdentifiers ?? []);
+  const uniqueMap = new Map<string, BookSearchItem>();
 
-    return {
-      title: info.title ?? "",
-      authors: Array.isArray(info.authors) ? info.authors : [],
-      publisher: info.publisher ?? "",
-      publishedDate: info.publishedDate ?? "",
-      description: info.description ?? "",
-      isbn,
-      thumbnail:
-        info.imageLinks?.thumbnail ??
-        info.imageLinks?.smallThumbnail ??
-        "",
-      pageCount: info.pageCount,
-      source: "google" as const,
-    };
-  });
+  for (const book of allItems) {
+    const key = buildDedupeKey(book);
+
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, book);
+    }
+  }
+
+  return Array.from(uniqueMap.values());
 }
 
 export async function fetchOpenBdByIsbns(
@@ -86,7 +120,8 @@ export async function fetchOpenBdByIsbns(
   }
 
   const res = await fetch(
-    `https://api.openbd.jp/v1/get?isbn=${cleanIsbns.join(",")}`
+    `https://api.openbd.jp/v1/get?isbn=${cleanIsbns.join(",")}`,
+    { cache: "no-store" }
   );
 
   if (!res.ok) {
@@ -151,7 +186,10 @@ export function mergeBookData(
     const openbd = openBdMap[normalizedIsbn];
 
     if (!openbd) {
-      return book;
+      return {
+        ...book,
+        thumbnail: normalizeThumbnailUrl(book.thumbnail),
+      };
     }
 
     const openBdTitle = getOpenBdTitle(openbd);
@@ -171,7 +209,7 @@ export function mergeBookData(
       publisher: openBdPublisher || book.publisher,
       publishedDate: openBdPubdate || book.publishedDate,
       description: openBdDescription || book.description,
-      thumbnail: openBdCover || book.thumbnail,
+      thumbnail: normalizeThumbnailUrl(openBdCover || book.thumbnail),
       source: "google+openbd",
     };
   });
@@ -180,9 +218,20 @@ export function mergeBookData(
 export async function searchBooks(query: string): Promise<BookSearchItem[]> {
   const googleBooks = await searchGoogleBooks(query);
 
+  if (googleBooks.length === 0) {
+    return [];
+  }
+
   const isbns = googleBooks.map((book) => book.isbn).filter(Boolean);
 
-  const openBdMap = await fetchOpenBdByIsbns(isbns);
-
-  return mergeBookData(googleBooks, openBdMap);
+  try {
+    const openBdMap = await fetchOpenBdByIsbns(isbns);
+    return mergeBookData(googleBooks, openBdMap);
+  } catch (error) {
+    console.error("openBD merge failed. Fallback to Google Books only.", error);
+    return googleBooks.map((book) => ({
+      ...book,
+      thumbnail: normalizeThumbnailUrl(book.thumbnail),
+    }));
+  }
 }

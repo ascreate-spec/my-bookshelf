@@ -38,6 +38,9 @@ type SavedBook = {
   uid?: string;
   createdAt?: any;
   updatedAt?: any;
+  subTitle?: string;
+  seriesName?: string;
+  isEbook?: boolean;
 };
 
 type Shelf = {
@@ -57,6 +60,9 @@ type EditForm = {
   memo: string;
   tags: string[];
   owned: boolean;
+  subTitle: string;
+  seriesName: string;
+  isEbook: boolean;
 };
 
 export default function BookEditPage() {
@@ -85,6 +91,9 @@ const [tagInput, setTagInput] = useState("");
 
   const [editForm, setEditForm] = useState<EditForm>({
   title: "",
+  subTitle: "",
+  seriesName: "",
+  isEbook: false,
   isbn: "",
   publisher: "",
   author: "",
@@ -135,6 +144,9 @@ const [tagInput, setTagInput] = useState("");
       uid: data.uid || "",
       createdAt: data.createdAt || null,
       updatedAt: data.updatedAt || null,
+      subTitle: data.subTitle || "",
+seriesName: data.seriesName || "",
+isEbook: data.isEbook ?? false,
     };
 
     if (user && fetchedBook.uid && fetchedBook.uid !== user.uid) {
@@ -146,17 +158,20 @@ const [tagInput, setTagInput] = useState("");
     setBook(fetchedBook);
 
     setEditForm({
-      title: fetchedBook.title || "",
-      isbn: fetchedBook.isbn || "",
-      publisher: fetchedBook.publisher || "",
-      author: fetchedBook.author || "",
-      shelf: normalizeShelfName(fetchedBook.shelf),
-      owned: fetchedBook.owned ?? false,
-      status: fetchedBook.status || "未読",
-      finishedDate: fetchedBook.finishedDate || "",
-      memo: fetchedBook.memo || "",
-      tags: Array.isArray(fetchedBook.tags) ? fetchedBook.tags : [],
-    });
+  title: fetchedBook.title || "",
+  subTitle: fetchedBook.subTitle || "",
+  seriesName: fetchedBook.seriesName || "",
+  isEbook: fetchedBook.isEbook ?? false,
+  isbn: fetchedBook.isbn || "",
+  publisher: fetchedBook.publisher || "",
+  author: fetchedBook.author || "",
+  shelf: normalizeShelfName(fetchedBook.shelf),
+  owned: fetchedBook.owned ?? false,
+  status: fetchedBook.status || "未読",
+  finishedDate: fetchedBook.finishedDate || "",
+  memo: fetchedBook.memo || "",
+  tags: Array.isArray(fetchedBook.tags) ? fetchedBook.tags : [],
+});
 
     return fetchedBook;
   };
@@ -385,6 +400,9 @@ const handleSave = async () => {
       memo: editForm.memo,
       tags: editForm.tags,
       updatedAt: new Date(),
+      subTitle: editForm.subTitle.trim(),
+      seriesName: editForm.seriesName.trim(),
+      isEbook: editForm.isEbook,
     });
 
     alert("更新しました");
@@ -625,6 +643,15 @@ const handleSave = async () => {
               />
             </div>
 
+<div className="fieldFull">
+  <p style={ui.input.label}>サブタイトル</p>
+  <input
+    type="text"
+    value={editForm.subTitle}
+    onChange={(e) => handleEditChange("subTitle", e.target.value)}
+    style={ui.input.base}
+  />
+</div>
             <div className="fieldFull">
               <p style={ui.input.label}>著者</p>
               <input
@@ -654,6 +681,16 @@ const handleSave = async () => {
                 style={ui.input.base}
               />
             </div>
+
+            <div>
+  <p style={ui.input.label}>シリーズ名</p>
+  <input
+    type="text"
+    value={editForm.seriesName}
+    onChange={(e) => handleEditChange("seriesName", e.target.value)}
+    style={ui.input.base}
+  />
+</div>
 
             <div>
               <p style={ui.input.label}>棚</p>
@@ -700,6 +737,34 @@ const handleSave = async () => {
                 所持
               </label>
             </div>
+
+            <div>
+  <p style={ui.input.label}>電子書籍</p>
+
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "10px 12px",
+      border: `1px solid ${ui.colors.inputBorder}`,
+      borderRadius: "8px",
+      background: ui.colors.cardBg,
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={editForm.isEbook}
+      onChange={(e) =>
+        setEditForm((prev) => ({
+          ...prev,
+          isEbook: e.target.checked,
+        }))
+      }
+    />
+    電子書籍
+  </label>
+</div>
 
             <div>
               <p style={ui.input.label}>ステータス</p>
