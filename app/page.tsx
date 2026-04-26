@@ -90,7 +90,7 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [useSeriesView, setUseSeriesView] = useState(true);
+  const [useSeriesView, setUseSeriesView] = useState(false);
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
