@@ -1,336 +1,278 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { db } from "../../lib/firebase";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../../lib/ui";
-import { auth } from "../../lib/firebase";
-import { onAuthStateChanged, User, signOut } from "firebase/auth";
-import { searchBooks, BookSearchItem } from "@/lib/bookSearch";
-import BottomNav from "../../components/BottomNav";
+import { auth, db } from "../../lib/firebase";
 import { isAllowedEmail } from "../../lib/authGuard";
+import { ui } from "../../lib/ui";
+import BottomNav from "../../components/BottomNav";
+import { searchBooks, type BookSearchItem } from "../../lib/bookSearch";
+
+type SavedBookInput = {
+  title: string;
+  subTitle: string;
+  seriesName: string;
+  author: string;
+  authors: string[];
+  publisher: string;
+  isbn: string;
+  image: string;
+  shelf: string;
+  status: string;
+  finishedDate: string;
+  memo: string;
+  tags: string[];
+  owned: boolean;
+  uid: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isEbook: boolean;
+};
 
 function normalizeThumbnailUrl(url: string): string {
   if (!url) return "";
   return url.trim().replace(/^http:\/\//i, "https://");
 }
 
-type BookInfo = BookSearchItem;
-
 export default function AddBookPage() {
-  const [keyword, setKeyword] = useState("");
-  const [book, setBook] = useState<BookInfo | null>(null);
-  const [message, setMessage] = useState("");
-  const [searchResults, setSearchResults] = useState<BookInfo[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [manualTitle, setManualTitle] = useState("");
-  const [manualAuthors, setManualAuthors] = useState("");
-  const [manualPublisher, setManualPublisher] = useState("");
-  const [manualIsbn, setManualIsbn] = useState("");
+  const router = useRouter();
 
-  const [subTitle, setSubTitle] = useState("");
-  const [seriesName, setSeriesName] = useState("");
-  const [isEbook, setIsEbook] = useState(false);
-
-  const [manualSubTitle, setManualSubTitle] = useState("");
-  const [manualSeriesName, setManualSeriesName] = useState("");
-  const [manualIsEbook, setManualIsEbook] = useState(false);
+  const defaultShelves = useMemo(
+    () => ["絵本・児童書", "学習・参考書", "小説", "実用書", "未分類"],
+    []
+  );
 
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const router = useRouter();
-  
 
-  const ensureTagsExist = async (uid: string, tags: string[]) => {
-  const normalizedTags = Array.from(
-    new Set(
-      tags
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "")
-    )
-  );
+  const [mode, setMode] = useState<"search" | "manual">("search");
 
-  if (normalizedTags.length === 0) return;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<BookSearchItem[]>([]);
+  const [selectedBook, setSelectedBook] = useState<BookSearchItem | null>(null);
 
-  const q = query(
-    collection(db, "tags"),
-    where("uid", "==", uid)
-  );
+  const [saving, setSaving] = useState(false);
 
-  const snapshot = await getDocs(q);
+  const [isEbook, setIsEbook] = useState(false);
+  const [owned, setOwned] = useState(false);
+  const [selectedShelf, setSelectedShelf] = useState("未分類");
 
-  const existingTagNames = snapshot.docs.map((docSnap) =>
-    String(docSnap.data().name || "").trim().toLowerCase()
-  );
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualAuthor, setManualAuthor] = useState("");
+  const [manualPublisher, setManualPublisher] = useState("");
+  const [manualIsbn, setManualIsbn] = useState("");
+  const [manualIsEbook, setManualIsEbook] = useState(false);
+  const [manualOwned, setManualOwned] = useState(false);
+  const [manualShelf, setManualShelf] = useState("未分類");
 
-  const missingTags = normalizedTags.filter(
-    (tag) => !existingTagNames.includes(tag.toLowerCase())
-  );
-
-  await Promise.all(
-    missingTags.map((tag) =>
-      addDoc(collection(db, "tags"), {
-        name: tag,
-        uid,
-        createdAt: new Date(),
-      })
-    )
-  );
-};
+  const [shelfList, setShelfList] = useState<string[]>([]);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-    setAuthLoading(false);
-  });
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  return () => unsubscribe();
-}, []);
+  useEffect(() => {
+    const fetchShelves = async () => {
+      if (!user) {
+        setShelfList(defaultShelves);
+        return;
+      }
 
-  const normalizeIsbn = (isbn: string) => {
-  return isbn.replace(/[^0-9X]/gi, "").trim();
-};
+      try {
+        const q = query(collection(db, "shelves"), where("uid", "==", user.uid));
+        const snapshot = await getDocs(q);
 
-const isDuplicateIsbn = async (isbn: string) => {
-  if (!user) return false;
+        const customShelves = snapshot.docs
+          .map((docSnap) => String(docSnap.data().name || "").trim())
+          .filter(Boolean);
 
-  const normalized = normalizeIsbn(isbn);
-  if (!normalized) return false;
+        const merged = Array.from(
+          new Set([...customShelves, ...defaultShelves])
+        ).sort((a, b) => a.localeCompare(b, "ja"));
 
-  const q = query(
-    collection(db, "books"),
-    where("uid", "==", user.uid),
-    where("isbn", "==", normalized),
-    limit(1)
-  );
+        setShelfList(merged);
+      } catch (error) {
+        console.error(error);
+        setShelfList(defaultShelves);
+      }
+    };
 
-  const snapshot = await getDocs(q);
-  return !snapshot.empty;
-};
+    if (!authLoading) {
+      fetchShelves();
+    }
+  }, [user, authLoading, defaultShelves]);
 
   const handleSearch = async () => {
-  const trimmed = keyword.trim();
-
-  if (!trimmed) {
-    setMessage("ISBN、タイトル、作者のいずれかを入力してください");
-    setSearchResults([]);
-    setBook(null);
-    setSelectedIndex(null);
-    return;
-  }
-
-  if (searching) return;
-
-  setSearching(true);
-  setSelectedIndex(null);
-  setMessage("検索中...");
-  setBook(null);
-  setSearchResults([]);
-
-  try {
-    const results = await searchBooks(trimmed);
-
-    if (results.length === 0) {
-      setMessage("本が見つかりませんでした");
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      alert("タイトル・著者・ISBNなどを入力してください");
       return;
     }
 
-    setSearchResults(results);
-    setMessage("候補を選んで保存してください");
-  } catch (error) {
-    console.error(error);
-    setMessage("検索に失敗しました");
-  } finally {
-    setSearching(false);
-  }
-};
+    try {
+      setSearchLoading(true);
+      setSelectedBook(null);
+      const results = await searchBooks(trimmed);
+      setSearchResults(results);
+    } catch (error) {
+      console.error(error);
+      alert("検索に失敗しました");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const handleSave = async () => {
-  if (!book) return;
-
-  if (!user) {
-    setMessage("ログインしてください");
-    return;
-  }
-
-  try {
-    setSaving(true);
-
-    const normalizedIsbn = normalizeIsbn(book.isbn || "");
-
-    if (normalizedIsbn) {
-      const exists = await isDuplicateIsbn(normalizedIsbn);
-
-      if (exists) {
-        setMessage("同じISBNの本はすでに登録されています");
-        return;
-      }
+    if (!user) return;
+    if (!selectedBook) {
+      alert("本を選択してください");
+      return;
     }
 
-    await addDoc(collection(db, "books"), {
-  isbn: normalizedIsbn,
-  title: book.title,
-  subTitle: subTitle.trim(),
-  seriesName: seriesName.trim(),
-  isEbook,
-  author: book.authors.length > 0 ? book.authors.join(", ") : "",
-  authors: book.authors,
-  publisher: book.publisher,
-  image: normalizeThumbnailUrl(book.thumbnail || ""),
-  shelf: "未分類",
-  status: "未読",
-  finishedDate: "",
-  memo: "",
-  tags: [],
-  owned: false,
-  uid: user.uid,
-  createdAt: new Date(),
-});
+    try {
+      setSaving(true);
 
-    setMessage("追加しました！");
-    setTimeout(() => {
+      const payload: SavedBookInput = {
+        title: selectedBook.title.trim() || "タイトルなし",
+        subTitle: "",
+        seriesName: "",
+        author: selectedBook.authors?.join(", ").trim() || "",
+        authors: Array.isArray(selectedBook.authors) ? selectedBook.authors : [],
+        publisher: selectedBook.publisher?.trim() || "",
+        isbn: selectedBook.isbn?.trim() || "",
+        image: normalizeThumbnailUrl(selectedBook.thumbnail || ""),
+        shelf: selectedShelf,
+        status: "未読",
+        finishedDate: "",
+        memo: "",
+        tags: [],
+        owned,
+        uid: user.uid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEbook,
+      };
+
+      await addDoc(collection(db, "books"), payload);
+
+      alert("追加しました");
+      setSearchQuery("");
+      setSearchResults([]);
+      setSelectedBook(null);
+      setIsEbook(false);
+      setOwned(false);
+      setSelectedShelf("未分類");
       router.push("/");
-    }, 500);
-
-    setBook(null);
-    setKeyword("");
-    setSearchResults([]);
-    setSelectedIndex(null);
-    setSubTitle("");
-    setSeriesName("");
-    setIsEbook(false);
-
-  } catch (error) {
-    console.error(error);
-    setMessage("保存に失敗しました");
-  } finally {
-    setSaving(false);
-  }
-};
+    } catch (error) {
+      console.error(error);
+      alert("追加に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleManualSave = async () => {
-  if (!manualTitle.trim()) {
-    setMessage("タイトルは必須です");
-    return;
+    if (!user) return;
+    if (!manualTitle.trim()) {
+      alert("タイトルを入力してください");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const authorList = manualAuthor
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+      const payload: SavedBookInput = {
+        title: manualTitle.trim() || "タイトルなし",
+        subTitle: "",
+        seriesName: "",
+        author: manualAuthor.trim(),
+        authors: authorList,
+        publisher: manualPublisher.trim(),
+        isbn: manualIsbn.trim(),
+        image: "",
+        shelf: manualShelf,
+        status: "未読",
+        finishedDate: "",
+        memo: "",
+        tags: [],
+        owned: manualOwned,
+        uid: user.uid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEbook: manualIsEbook,
+      };
+
+      await addDoc(collection(db, "books"), payload);
+
+      alert("追加しました");
+      setManualTitle("");
+      setManualAuthor("");
+      setManualPublisher("");
+      setManualIsbn("");
+      setManualIsEbook(false);
+      setManualOwned(false);
+      setManualShelf("未分類");
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      alert("追加に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <main style={ui.layout.page}>
+        <div style={ui.layout.pageWrap}>
+          <p style={ui.text.helper}>読み込み中...</p>
+        </div>
+      </main>
+    );
   }
 
   if (!user) {
-    setMessage("ログインしてください");
-    return;
+    return (
+      <main style={ui.layout.page}>
+        <div style={ui.layout.pageWrap}>
+          <p style={ui.text.helper}>ログインしてください</p>
+        </div>
+        <BottomNav />
+      </main>
+    );
   }
 
-  try {
-    const normalizedIsbn = normalizeIsbn(manualIsbn);
-
-    if (normalizedIsbn) {
-      const exists = await isDuplicateIsbn(normalizedIsbn);
-
-      if (exists) {
-        setMessage("同じISBNの本はすでに登録されています");
-        return;
-      }
-    }
-
-    await addDoc(collection(db, "books"), {
-  isbn: normalizedIsbn,
-  title: manualTitle.trim(),
-  subTitle: manualSubTitle.trim(),
-  seriesName: manualSeriesName.trim(),
-  isEbook: manualIsEbook,
-  author: manualAuthors.trim(),
-  authors: manualAuthors
-    ? manualAuthors.split(",").map((a) => a.trim())
-    : [],
-  publisher: manualPublisher.trim(),
-  image: "",
-  shelf: "未分類",
-  status: "未読",
-  finishedDate: "",
-  memo: "",
-  tags: [],
-  owned: false,
-  uid: user.uid,
-  createdAt: new Date(),
-  isManual: true,
-});
-
-    setMessage("追加しました！");
-    setTimeout(() => {
-      router.push("/");
-    }, 500);
-
-    setManualTitle("");
-    setManualAuthors("");
-    setManualPublisher("");
-    setManualIsbn("");
-    setManualSubTitle("");
-    setManualSeriesName("");
-    setManualIsEbook(false);
-
-  } catch (error) {
-    console.error(error);
-    setMessage("保存に失敗しました");
+  if (!isAllowedEmail(user.email)) {
+    return (
+      <main style={ui.layout.page}>
+        <div style={ui.layout.pageWrap}>
+          <p>このアカウントでは利用できません</p>
+          <button
+            style={ui.button.muted}
+            onClick={async () => {
+              await signOut(auth);
+              router.push("/");
+            }}
+          >
+            ログアウト
+          </button>
+        </div>
+        <BottomNav />
+      </main>
+    );
   }
-};
-
-if (authLoading) {
-  return (
-    <main
-      style={{
-        ...ui.layout.page,
-        paddingBottom: "96px",
-      }}
-    >
-      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-        <p style={ui.text.helper}>認証確認中...</p>
-      </div>
-    </main>
-  );
-}
-
-if (!user) {
-  return (
-    <main
-      style={{
-        ...ui.layout.page,
-        paddingBottom: "96px",
-      }}
-    >
-      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-        <p style={ui.text.helper}>ログインしてください</p>
-      </div>
-    </main>
-  );
-}
-
-if (!isAllowedEmail(user.email)) {
-  return (
-    <main
-      style={{
-        ...ui.layout.page,
-        paddingBottom: "96px",
-      }}
-    >
-      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-        <p>このアカウントでは利用できません</p>
-
-        <button style={ui.button.muted} onClick={async () => await signOut(auth)}>
-  ログアウト
-</button>
-      </div>
-    </main>
-  );
-}
 
   return (
     <main
@@ -338,521 +280,455 @@ if (!isAllowedEmail(user.email)) {
         ...ui.layout.page,
         paddingBottom: "96px",
       }}
-    
     >
-
       <style jsx>{`
         .pageWrap {
-          max-width: 820px;
+          max-width: 760px;
           margin: 0 auto;
         }
 
-        .searchArea,
-        .manualArea,
-        .selectedArea {
+        .tabRow {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+        }
+
+        .tabButton {
+          border: 1px solid ${ui.colors.border};
+          background: ${ui.colors.cardBg};
+          color: ${ui.colors.text};
+          border-radius: 999px;
+          padding: 10px 16px;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .tabButtonActive {
+          background: ${ui.colors.text};
+          color: ${ui.colors.cardBg};
+          border-color: ${ui.colors.text};
+        }
+
+        .sectionCard {
           background: ${ui.colors.cardBg};
           border: 1px solid ${ui.colors.border};
           border-radius: 14px;
-          padding: 18px;
+          padding: 20px;
         }
 
-        .resultsList {
-          margin-top: 24px;
-          max-height: 520px;
-          overflow-y: auto;
-          padding-right: 4px;
+        .resultList {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 16px;
         }
 
         .resultCard {
-          display: flex;
-          gap: 12px;
-          padding: 12px;
-          border-radius: 10px;
-          margin-top: 12px;
-          cursor: pointer;
+          border: 1px solid ${ui.colors.border};
+          border-radius: 12px;
           background: ${ui.colors.cardBg};
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          padding: 14px;
+          cursor: pointer;
         }
 
-        .resultCard:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px ${ui.colors.shadow};
+        .selectedArea {
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 1px solid ${ui.colors.borderSoft};
         }
 
-        .twoColumn {
+        .bookRow {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
+          grid-template-columns: 120px 1fr;
+          gap: 16px;
           align-items: start;
-          margin-top: 28px;
+        }
+
+        .manualGrid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
         }
 
         @media (max-width: 768px) {
-          .twoColumn {
+          .sectionCard {
+            padding: 16px;
+          }
+
+          .bookRow {
             grid-template-columns: 1fr;
-          }
-
-          .resultCard {
-            align-items: flex-start;
-          }
-
-          .actionButton {
-            width: 100%;
           }
         }
       `}</style>
 
       <div className="pageWrap">
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            ...ui.button.secondary,
+            marginBottom: "20px",
+          }}
+        >
+          ← 戻る
+        </button>
 
         <h1 style={ui.layout.sectionTitle}>本を追加</h1>
         <p style={ui.layout.sectionDescription}>
-          ISBN・タイトル・作者で検索して追加します
+          検索して追加、または手動で追加できます
         </p>
 
-        <div className="searchArea">
-          <label htmlFor="keyword" style={ui.input.label}>
-            キーワード
-          </label>
-
-          <div style={{ position: "relative", marginBottom: "16px" }}>
-  <input
-    id="keyword"
-    type="text"
-    value={keyword}
-    onChange={(e) => setKeyword(e.target.value)}
-    placeholder="ISBN / タイトル / 作者 で検索"
-    style={{
-      ...ui.input.base,
-      marginBottom: 0,
-      paddingRight: "36px",
-    }}
-    onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleSearch();
-  }
-}}
-  />
-
-  {keyword && (
-    <button
-      type="button"
-      onClick={() => setKeyword("")}
-      aria-label="検索文字をクリア"
-      style={{
-        position: "absolute",
-        right: "8px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        fontSize: "16px",
-        color: ui.colors.subText,
-        padding: "4px",
-        lineHeight: 1,
-      }}
-    >
-      ×
-    </button>
-  )}
-</div>
+        <div className="tabRow">
+          <button
+            type="button"
+            className={`tabButton ${mode === "search" ? "tabButtonActive" : ""}`}
+            onClick={() => setMode("search")}
+          >
+            検索して追加
+          </button>
 
           <button
-  onClick={handleSearch}
-  disabled={searching}
-  className="actionButton"
-  style={{
-    ...ui.button.primary,
-    opacity: searching ? 0.7 : 1,
-    cursor: searching ? "not-allowed" : "pointer",
-  }}
->
-  {searching ? "検索中..." : "検索"}
-</button>
-
-          {message && (
-            <p
-              style={{
-                marginTop: "16px",
-                color: ui.colors.text,
-                lineHeight: 1.6,
-              }}
-            >
-              {message}
-            </p>
-          )}
-
-          {searchResults.length > 0 && (
-            <div className="resultsList">
-              <h2
-                style={{
-                  marginBottom: "8px",
-                  color: ui.colors.text,
-                  fontSize: "22px",
-                }}
-              >
-                検索結果
-              </h2>
-
-              {searchResults.map((result, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-  setBook(result);
-  setSelectedIndex(index);
-  setSubTitle("");
-  setSeriesName("");
-  setIsEbook(false);
-}}
-                  className="resultCard"
-                  onMouseEnter={(e) => {
-  Object.assign(e.currentTarget.style, ui.card.hover);
-}}
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform = "";
-  e.currentTarget.style.boxShadow = "";
-}}
-                  style={{
-                    border:
-                      selectedIndex === index
-                        ? `2px solid ${ui.colors.selectedBorder}`
-                        : `1px solid ${ui.colors.border}`,
-                    background:
-                      selectedIndex === index
-                        ? ui.colors.selectedBg
-                        : ui.colors.cardBg,
-                  }}
-                >
-                  {result.thumbnail && (
-  <img
-    src={normalizeThumbnailUrl(result.thumbnail)}
-    alt="表紙"
-    style={{
-      width: "60px",
-      minWidth: "60px",
-      height: "auto",
-      objectFit: "contain",
-      borderRadius: "6px",
-      display: "block",
-      alignSelf: "flex-start",
-    }}
-  />
-)}
-                  <div style={{ minWidth: 0 }}>
-                    <p
-                      style={{
-                        ...ui.text.title,
-                        fontSize: "16px",
-                      }}
-                    >
-                      {result.title}
-                    </p>
-
-                    <p
-                      style={{
-                        margin: "4px 0 0 0",
-                        color: ui.colors.subText,
-                        fontSize: "14px",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {result.authors.length > 0
-                        ? result.authors.join(", ")
-                        : "著者なし"}
-                    </p>
-
-                    <p
-                      style={{
-                        margin: "4px 0 0 0",
-                        color: ui.colors.subText,
-                        fontSize: "14px",
-                      }}
-                    >
-                      ISBN: {result.isbn || "なし"}
-                    </p>
-                    <p
-  style={{
-    margin: "4px 0 0 0",
-    color: "#888",
-    fontSize: "12px",
-  }}
->
-  {result.source === "google+openbd"
-    ? "Google + openBD"
-    : "Google Books"}
-</p>
-
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            type="button"
+            className={`tabButton ${mode === "manual" ? "tabButtonActive" : ""}`}
+            onClick={() => setMode("manual")}
+          >
+            手動で追加
+          </button>
         </div>
 
-        <div className="twoColumn">
-          {book ? (
-            <div className="selectedArea">
-              {book.thumbnail && (
-  <img
-    src={normalizeThumbnailUrl(book.thumbnail)}
-                  alt="表紙"
-                  style={{
-                    width: "120px",
-                    maxWidth: "100%",
-                    marginBottom: "16px",
-                    borderRadius: "8px",
-                  }}
-                />
-              )}
-
-              <h2
-                style={{
-                  marginTop: 0,
-                  marginBottom: "12px",
-                  color: ui.colors.text,
-                  wordBreak: "break-word",
-                  lineHeight: 1.5,
+        {mode === "search" ? (
+          <div className="sectionCard">
+            <label style={ui.input.label}>タイトル・著者・ISBN で検索</label>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch();
                 }}
-              >
-                {book.title}
-              </h2>
-
-              <p
+                placeholder="例: ぐりとぐら / 978..."
                 style={{
-                  margin: "0 0 8px 0",
-                  color: ui.colors.text,
-                  lineHeight: 1.7,
-                  wordBreak: "break-word",
+                  ...ui.input.base,
+                  flex: 1,
+                  minWidth: "220px",
                 }}
-              >
-                <strong>著者:</strong>{" "}
-                {book.authors.length > 0 ? book.authors.join(", ") : "なし"}
-              </p>
-
-              <p
-                style={{
-                  margin: "0 0 8px 0",
-                  color: ui.colors.text,
-                  lineHeight: 1.7,
-                  wordBreak: "break-word",
-                }}
-              >
-                <strong>出版社:</strong> {book.publisher}
-              </p>
-
-              <p
-                style={{
-                  margin: "0 0 8px 0",
-                  color: ui.colors.text,
-                  lineHeight: 1.7,
-                }}
-              >
-                <strong>ISBN:</strong> {book.isbn || "なし"}
-              </p>
-
-              <label style={ui.input.label}>サブタイトル</label>
-<input
-  type="text"
-  value={subTitle}
-  onChange={(e) => setSubTitle(e.target.value)}
-  style={{ ...ui.input.base, marginBottom: "12px" }}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSave();
-    }
-  }}
-/>
-
-<label style={ui.input.label}>シリーズ名</label>
-<input
-  type="text"
-  value={seriesName}
-  onChange={(e) => setSeriesName(e.target.value)}
-  style={{ ...ui.input.base, marginBottom: "12px" }}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSave();
-    }
-  }}
-/>
-
-<label
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "4px",
-    color: ui.colors.text,
-  }}
->
-  <input
-    type="checkbox"
-    checked={isEbook}
-    onChange={(e) => setIsEbook(e.target.checked)}
-  />
-  電子書籍
-</label>
-
+              />
               <button
-                onClick={handleSave}
-                disabled={saving}
-                className="actionButton"
-                style={{ ...ui.button.primary, marginTop: "16px" }}
+                type="button"
+                onClick={handleSearch}
+                disabled={searchLoading}
+                style={ui.button.primary}
               >
-                {saving ? "保存中..." : "追加する"}
+                {searchLoading ? "検索中..." : "検索"}
               </button>
             </div>
-          ) : (
-            <div
-              className="selectedArea"
-              style={{
-                color: ui.colors.subText,
-                display: "flex",
-                alignItems: "center",
-                lineHeight: 1.7,
-              }}
-            >
-              検索結果から本を選ぶと、ここに詳細が表示されます
-            </div>
-          )}
 
-          <div className="manualArea">
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom: "8px",
-                color: ui.colors.text,
-                fontSize: "22px",
-              }}
-            >
-              手動で追加
-            </h2>
+            {searchResults.length > 0 && (
+              <div className="resultList">
+                {searchResults.map((result, index) => (
+                  <div
+                    key={`${result.isbn}-${index}`}
+                    className="resultCard"
+                    onClick={() => setSelectedBook(result)}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "72px 1fr",
+                        gap: "12px",
+                        alignItems: "start",
+                      }}
+                    >
+                      {normalizeThumbnailUrl(result.thumbnail) ? (
+                        <img
+                          src={normalizeThumbnailUrl(result.thumbnail)}
+                          alt={result.title}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          style={{
+                            width: "72px",
+                            minWidth: "72px",
+                            borderRadius: "6px",
+                            display: "block",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "72px",
+                            height: "108px",
+                            borderRadius: "6px",
+                            background: ui.colors.inputDisabledBg,
+                            color: ui.colors.placeholder,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "12px",
+                          }}
+                        >
+                          表紙
+                        </div>
+                      )}
 
-            <p
-              style={{
-                color: ui.colors.subText,
-                marginBottom: "16px",
-                lineHeight: 1.6,
-              }}
-            >
-              検索で見つからない本はこちらから登録できます
-            </p>
+                      <div>
+                        <p style={ui.text.title}>{result.title}</p>
+                        {result.authors?.length > 0 && (
+                          <p style={ui.text.author}>{result.authors.join(", ")}</p>
+                        )}
+                        {result.publisher && (
+                          <p style={ui.text.helper}>{result.publisher}</p>
+                        )}
+                        {result.isbn && (
+                          <p style={ui.text.helper}>ISBN: {result.isbn}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <label style={ui.input.label}>タイトル</label>
-            <input
-              type="text"
-              value={manualTitle}
-              onChange={(e) => setManualTitle(e.target.value)}
-              style={{ ...ui.input.base, marginBottom: "12px" }}
-              onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleManualSave();
-  }
-}}
-            />
+            {selectedBook && (
+              <div className="selectedArea">
+                <p
+                  style={{
+                    margin: "0 0 12px 0",
+                    fontWeight: "bold",
+                    color: ui.colors.text,
+                  }}
+                >
+                  選択中の本
+                </p>
 
-            <label style={ui.input.label}>サブタイトル</label>
-<input
-  type="text"
-  value={manualSubTitle}
-  onChange={(e) => setManualSubTitle(e.target.value)}
-  style={{ ...ui.input.base, marginBottom: "12px" }}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleManualSave();
-    }
-  }}
-/>
+                <div className="bookRow">
+                  <div>
+                    {normalizeThumbnailUrl(selectedBook.thumbnail) ? (
+                      <img
+                        src={normalizeThumbnailUrl(selectedBook.thumbnail)}
+                        alt={selectedBook.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          maxWidth: "140px",
+                          borderRadius: "8px",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          maxWidth: "140px",
+                          aspectRatio: "2 / 3",
+                          borderRadius: "8px",
+                          background: ui.colors.inputDisabledBg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: ui.colors.placeholder,
+                          fontSize: "13px",
+                        }}
+                      >
+                        画像なし
+                      </div>
+                    )}
+                  </div>
 
-            <label style={ui.input.label}>著者</label>
-            <input
-              type="text"
-              value={manualAuthors}
-              onChange={(e) => setManualAuthors(e.target.value)}
-              style={{ ...ui.input.base, marginBottom: "12px" }}
-              onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleManualSave();
-  }
-}}
-            />
+                  <div>
+                    <p style={ui.text.title}>{selectedBook.title}</p>
+                    {selectedBook.authors?.length > 0 && (
+                      <p style={ui.text.author}>{selectedBook.authors.join(", ")}</p>
+                    )}
+                    {selectedBook.publisher && (
+                      <p style={ui.text.helper}>出版社: {selectedBook.publisher}</p>
+                    )}
+                    {selectedBook.isbn && (
+                      <p style={ui.text.helper}>ISBN: {selectedBook.isbn}</p>
+                    )}
 
-            <label style={ui.input.label}>出版社</label>
-            <input
-              type="text"
-              value={manualPublisher}
-              onChange={(e) => setManualPublisher(e.target.value)}
-              style={{ ...ui.input.base, marginBottom: "12px" }}
-              onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleManualSave();
-  }
-}}
-            />
-            <label style={ui.input.label}>シリーズ名</label>
-<input
-  type="text"
-  value={manualSeriesName}
-  onChange={(e) => setManualSeriesName(e.target.value)}
-  style={{ ...ui.input.base, marginBottom: "12px" }}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleManualSave();
-    }
-  }}
-/>
+                    <label style={ui.input.label}>棚</label>
+                    <select
+                      value={selectedShelf}
+                      onChange={(e) => setSelectedShelf(e.target.value)}
+                      style={{ ...ui.input.base, marginBottom: "12px" }}
+                    >
+                      <option value="未分類">未分類</option>
+                      {shelfList.map((shelf) => (
+                        <option key={shelf} value={shelf}>
+                          {shelf}
+                        </option>
+                      ))}
+                    </select>
 
-<label
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "12px",
-    color: ui.colors.text,
-  }}
->
-  <input
-    type="checkbox"
-    checked={manualIsEbook}
-    onChange={(e) => setManualIsEbook(e.target.checked)}
-  />
-  電子書籍
-</label>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "12px",
+                        color: ui.colors.text,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={owned}
+                        onChange={(e) => setOwned(e.target.checked)}
+                      />
+                      所持
+                    </label>
 
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginTop: "4px",
+                        color: ui.colors.text,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEbook}
+                        onChange={(e) => setIsEbook(e.target.checked)}
+                      />
+                      電子書籍
+                    </label>
 
-            <label style={ui.input.label}>ISBN（任意）</label>
-            <input
-              type="text"
-              value={manualIsbn}
-              onChange={(e) => setManualIsbn(e.target.value)}
-              style={{ ...ui.input.base, marginBottom: "12px" }}
-              onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleManualSave();
-  }
-}}
-            />
-
-            <button
-              onClick={handleManualSave}
-              className="actionButton"
-              style={{ ...ui.button.primary, marginTop: "8px" }}
-            >
-              手動で追加
-            </button>
+                    <div style={{ marginTop: "16px" }}>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={ui.button.primary}
+                      >
+                        {saving ? "追加中..." : "追加する"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="sectionCard">
+            <div className="manualGrid">
+              <div>
+                <label style={ui.input.label}>タイトル</label>
+                <input
+                  type="text"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.target.value)}
+                  style={ui.input.base}
+                />
+              </div>
+
+              <div>
+                <label style={ui.input.label}>著者</label>
+                <input
+                  type="text"
+                  value={manualAuthor}
+                  onChange={(e) => setManualAuthor(e.target.value)}
+                  style={ui.input.base}
+                />
+              </div>
+
+              <div>
+                <label style={ui.input.label}>出版社</label>
+                <input
+                  type="text"
+                  value={manualPublisher}
+                  onChange={(e) => setManualPublisher(e.target.value)}
+                  style={ui.input.base}
+                />
+              </div>
+
+              <div>
+                <label style={ui.input.label}>ISBN</label>
+                <input
+                  type="text"
+                  value={manualIsbn}
+                  onChange={(e) => setManualIsbn(e.target.value)}
+                  style={ui.input.base}
+                />
+              </div>
+
+              <div>
+                <label style={ui.input.label}>棚</label>
+                <select
+                  value={manualShelf}
+                  onChange={(e) => setManualShelf(e.target.value)}
+                  style={{ ...ui.input.base, marginBottom: "12px" }}
+                >
+                  <option value="未分類">未分類</option>
+                  {shelfList.map((shelf) => (
+                    <option key={shelf} value={shelf}>
+                      {shelf}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: "12px",
+                    color: ui.colors.text,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={manualOwned}
+                    onChange={(e) => setManualOwned(e.target.checked)}
+                  />
+                  所持
+                </label>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: ui.colors.text,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={manualIsEbook}
+                    onChange={(e) => setManualIsEbook(e.target.checked)}
+                  />
+                  電子書籍
+                </label>
+              </div>
+
+              <div style={{ marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={handleManualSave}
+                  disabled={saving}
+                  style={ui.button.primary}
+                >
+                  {saving ? "追加中..." : "追加する"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    <BottomNav />
+
+      <BottomNav />
     </main>
   );
 }

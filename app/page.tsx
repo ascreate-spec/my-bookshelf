@@ -90,6 +90,7 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [useSeriesView, setUseSeriesView] = useState(true);
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -817,6 +818,25 @@ const handleTagFilterKeyDown = (
           </div>
         </div>
 
+        <div className="filterBox">
+  <label
+    style={{
+      ...ui.input.label,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      cursor: "pointer",
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={useSeriesView}
+      onChange={(e) => setUseSeriesView(e.target.checked)}
+    />
+    シリーズ表示
+  </label>
+</div>
+
         <div style={{ marginTop: "24px" }}>
           <h2
             style={{
@@ -914,11 +934,20 @@ const handleTagFilterKeyDown = (
           )}
 
           {!loading && filteredBooks.length > 0 && (
-  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-    {groupedBooks.map((item, index) => {
+  useSeriesView ? (
+  <div className="booksGrid">
+  {groupedBooks.map((item, index) => {
       if (item.type === "series") {
         return (
-          <section key={`series-${item.seriesName}-${index}`}>
+          <section
+  key={`series-${item.seriesName}-${index}`}
+  style={{
+    gridColumn: "1 / -1",
+    marginBottom: "32px",
+    paddingBottom: "28px",
+    borderBottom: "1px solid #d6dde5",
+  }}
+>
             <div
               style={{
                 marginBottom: "12px",
@@ -1045,15 +1074,14 @@ const handleTagFilterKeyDown = (
       }
 
       return (
-        <section key={`single-${item.book.id}-${index}`}>
-          <div className="booksGrid">
-            <div
-              className="bookCard"
-              style={ui.card.clickable}
-              onClick={() => router.push(`/books/${item.book.id}`)}
-              onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
-              onMouseLeave={clearHoverStyle}
-            >
+  <div
+    key={`single-${item.book.id}-${index}`}
+    className="bookCard"
+    style={ui.card.clickable}
+    onClick={() => router.push(`/books/${item.book.id}`)}
+    onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
+    onMouseLeave={clearHoverStyle}
+  >
               <div
                 style={{
                   display: "flex",
@@ -1148,11 +1176,117 @@ const handleTagFilterKeyDown = (
                 </div>
               </div>
             </div>
-          </div>
-        </section>
       );
     })}
-  </div>
+      </div>
+  ) : (
+    <div className="booksGrid">
+      {filteredBooks.map((book) => (
+        <div
+          key={book.id}
+          className="bookCard"
+          style={ui.card.clickable}
+          onClick={() => router.push(`/books/${book.id}`)}
+          onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
+          onMouseLeave={clearHoverStyle}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "flex-start",
+            }}
+          >
+            {normalizeThumbnailUrl(book.image) && (
+              <img
+                src={normalizeThumbnailUrl(book.image)}
+                alt="表紙"
+                style={{
+                  width: "72px",
+                  minWidth: "72px",
+                  borderRadius: "6px",
+                  display: "block",
+                }}
+              />
+            )}
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={ui.text.title}>{book.title}</p>
+
+              {book.subTitle && (
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: ui.colors.subText,
+                    marginTop: "4px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {book.subTitle}
+                </p>
+              )}
+
+              {book.author && (
+                <p style={ui.text.author}>{book.author}</p>
+              )}
+
+              {book.seriesName && (
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: ui.colors.subText,
+                    marginTop: "4px",
+                  }}
+                >
+                  シリーズ：{book.seriesName}
+                </p>
+              )}
+
+              {Array.isArray(book.tags) && book.tags.length > 0 && (
+                <p style={ui.text.tagsText}>
+                  {book.tags.map((tag) => `#${tag}`).join(" ")}
+                </p>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "6px",
+                  marginTop: "10px",
+                }}
+              >
+                <span style={ui.badge.shelf}>
+                  {normalizeShelfName(book.shelf)}
+                </span>
+
+                {book.owned && (
+                  <span style={ui.badge.owned}>
+                    所持
+                  </span>
+                )}
+
+                {book.isEbook && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      borderRadius: "999px",
+                      background: ui.colors.hoverBg,
+                      color: ui.colors.text,
+                      border: `1px solid ${ui.colors.border}`,
+                    }}
+                  >
+                    電子書籍
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 )}
         </div>
       </div>

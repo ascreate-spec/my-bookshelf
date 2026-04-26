@@ -20,7 +20,6 @@ import { useParams, useRouter } from "next/navigation";
 import { isAllowedEmail } from "../../../lib/authGuard";
 import BottomNav from "../../../components/BottomNav";
 
-
 type SavedBook = {
   id: string;
   title: string;
@@ -77,33 +76,32 @@ export default function BookEditPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-
-const [loading, setLoading] = useState(true);
-const [saving, setSaving] = useState(false);
-const [deleting, setDeleting] = useState(false);
-const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-const [tagInput, setTagInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [activeTab, setActiveTab] = useState<"settings" | "basic">("settings");
 
   const [book, setBook] = useState<SavedBook | null>(null);
   const [shelfList, setShelfList] = useState<string[]>([]);
-
   const [allTags, setAllTags] = useState<string[]>([]);
 
   const [editForm, setEditForm] = useState<EditForm>({
-  title: "",
-  subTitle: "",
-  seriesName: "",
-  isEbook: false,
-  isbn: "",
-  publisher: "",
-  author: "",
-  shelf: "未分類",
-  status: "未読",
-  finishedDate: "",
-  memo: "",
-  tags: [],
-  owned: false,
-});
+    title: "",
+    subTitle: "",
+    seriesName: "",
+    isEbook: false,
+    isbn: "",
+    publisher: "",
+    author: "",
+    shelf: "未分類",
+    status: "未読",
+    finishedDate: "",
+    memo: "",
+    tags: [],
+    owned: false,
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -115,151 +113,142 @@ const [tagInput, setTagInput] = useState("");
   }, []);
 
   useEffect(() => {
-  const fetchBook = async () => {
-    const bookRef = doc(db, "books", bookId);
-    const snapshot = await getDoc(bookRef);
+    const fetchBook = async () => {
+      const bookRef = doc(db, "books", bookId);
+      const snapshot = await getDoc(bookRef);
 
-    if (!snapshot.exists()) {
-      alert("本が見つかりませんでした");
-      router.push("/");
-      return null;
-    }
+      if (!snapshot.exists()) {
+        alert("本が見つかりませんでした");
+        router.push("/");
+        return null;
+      }
 
-    const data = snapshot.data();
+      const data = snapshot.data();
 
-    const fetchedBook: SavedBook = {
-      id: snapshot.id,
-      title: data.title || "タイトルなし",
-      isbn: data.isbn || "",
-      publisher: data.publisher || "",
-      author: data.author || "",
-      authors: Array.isArray(data.authors) ? data.authors : [],
-      image: data.image || "",
-      shelf: normalizeShelfName(data.shelf),
-      status: data.status || "未読",
-      finishedDate: data.finishedDate || "",
-      memo: data.memo || "",
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      owned: data.owned ?? false,
-      uid: data.uid || "",
-      createdAt: data.createdAt || null,
-      updatedAt: data.updatedAt || null,
-      subTitle: data.subTitle || "",
-seriesName: data.seriesName || "",
-isEbook: data.isEbook ?? false,
+      const fetchedBook: SavedBook = {
+        id: snapshot.id,
+        title: data.title || "タイトルなし",
+        isbn: data.isbn || "",
+        publisher: data.publisher || "",
+        author: data.author || "",
+        authors: Array.isArray(data.authors) ? data.authors : [],
+        image: data.image || "",
+        shelf: normalizeShelfName(data.shelf),
+        status: data.status || "未読",
+        finishedDate: data.finishedDate || "",
+        memo: data.memo || "",
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        owned: data.owned ?? false,
+        uid: data.uid || "",
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null,
+        subTitle: data.subTitle || "",
+        seriesName: data.seriesName || "",
+        isEbook: data.isEbook ?? false,
+      };
+
+      if (user && fetchedBook.uid && fetchedBook.uid !== user.uid) {
+        alert("この本は編集できません");
+        router.push("/");
+        return null;
+      }
+
+      setBook(fetchedBook);
+
+      setEditForm({
+        title: fetchedBook.title || "",
+        subTitle: fetchedBook.subTitle || "",
+        seriesName: fetchedBook.seriesName || "",
+        isEbook: fetchedBook.isEbook ?? false,
+        isbn: fetchedBook.isbn || "",
+        publisher: fetchedBook.publisher || "",
+        author: fetchedBook.author || "",
+        shelf: normalizeShelfName(fetchedBook.shelf),
+        owned: fetchedBook.owned ?? false,
+        status: fetchedBook.status || "未読",
+        finishedDate: fetchedBook.finishedDate || "",
+        memo: fetchedBook.memo || "",
+        tags: Array.isArray(fetchedBook.tags) ? fetchedBook.tags : [],
+      });
+
+      return fetchedBook;
     };
 
-    if (user && fetchedBook.uid && fetchedBook.uid !== user.uid) {
-      alert("この本は編集できません");
-      router.push("/");
-      return null;
-    }
+    const fetchShelves = async () => {
+      if (!user) {
+        setShelfList([]);
+        return;
+      }
 
-    setBook(fetchedBook);
+      const q = query(collection(db, "shelves"), where("uid", "==", user.uid));
+      const querySnapshot = await getDocs(q);
 
-    setEditForm({
-  title: fetchedBook.title || "",
-  subTitle: fetchedBook.subTitle || "",
-  seriesName: fetchedBook.seriesName || "",
-  isEbook: fetchedBook.isEbook ?? false,
-  isbn: fetchedBook.isbn || "",
-  publisher: fetchedBook.publisher || "",
-  author: fetchedBook.author || "",
-  shelf: normalizeShelfName(fetchedBook.shelf),
-  owned: fetchedBook.owned ?? false,
-  status: fetchedBook.status || "未読",
-  finishedDate: fetchedBook.finishedDate || "",
-  memo: fetchedBook.memo || "",
-  tags: Array.isArray(fetchedBook.tags) ? fetchedBook.tags : [],
-});
+      const fetchedShelves: Shelf[] = querySnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        name: (docSnap.data().name || "").trim(),
+        order:
+          typeof docSnap.data().order === "number"
+            ? docSnap.data().order
+            : 9999,
+      }));
 
-    return fetchedBook;
-  };
+      const sortedShelves = fetchedShelves
+        .filter((shelf) => shelf.name !== "")
+        .sort((a, b) => {
+          const aOrder = typeof a.order === "number" ? a.order : 9999;
+          const bOrder = typeof b.order === "number" ? b.order : 9999;
 
-  const fetchShelves = async () => {
-    if (!user) {
-      setShelfList([]);
-      return;
-    }
-
-    const q = query(
-      collection(db, "shelves"),
-      where("uid", "==", user.uid)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    const fetchedShelves: Shelf[] = querySnapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      name: (docSnap.data().name || "").trim(),
-      order:
-        typeof docSnap.data().order === "number"
-          ? docSnap.data().order
-          : 9999,
-    }));
-
-    const sortedShelves = fetchedShelves
-      .filter((shelf) => shelf.name !== "")
-      .sort((a, b) => {
-        const aOrder = typeof a.order === "number" ? a.order : 9999;
-        const bOrder = typeof b.order === "number" ? b.order : 9999;
-
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return a.name.localeCompare(b.name, "ja");
-      })
-      .map((shelf) => shelf.name);
-
-    setShelfList(sortedShelves);
-  };
-
-  const fetchTags = async () => {
-    if (!user) {
-      setAllTags([]);
-      return;
-    }
-
-    const q = query(
-      collection(db, "books"),
-      where("uid", "==", user.uid)
-    );
-
-    const snapshot = await getDocs(q);
-
-    const tags = Array.from(
-      new Set(
-        snapshot.docs.flatMap((docSnap) => {
-          const data = docSnap.data();
-          return Array.isArray(data.tags) ? data.tags : [];
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return a.name.localeCompare(b.name, "ja");
         })
-      )
-    ).sort((a, b) => a.localeCompare(b, "ja"));
+        .map((shelf) => shelf.name);
 
-    setAllTags(tags);
-  };
+      setShelfList(sortedShelves);
+    };
 
-  const fetchAll = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    const fetchTags = async () => {
+      if (!user) {
+        setAllTags([]);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      await fetchBook();
-      await fetchShelves();
-      await fetchTags();
-    } catch (error) {
-      console.error(error);
-      alert("データの取得に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const q = query(collection(db, "books"), where("uid", "==", user.uid));
+      const snapshot = await getDocs(q);
+
+      const tags = Array.from(
+        new Set(
+          snapshot.docs.flatMap((docSnap) => {
+            const data = docSnap.data();
+            return Array.isArray(data.tags) ? data.tags : [];
+          })
+        )
+      ).sort((a, b) => a.localeCompare(b, "ja"));
+
+      setAllTags(tags);
+    };
+
+    const fetchAll = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        await fetchBook();
+        await fetchShelves();
+        await fetchTags();
+      } catch (error) {
+        console.error(error);
+        alert("データの取得に失敗しました");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     if (authLoading) return;
-
-  fetchAll();
-}, [bookId, router, user, authLoading]);
+    fetchAll();
+  }, [bookId, router, user, authLoading]);
 
   const handleEditChange = (field: keyof EditForm, value: string) => {
     setEditForm((prev) => ({
@@ -278,142 +267,136 @@ isEbook: data.isEbook ?? false,
 
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
-const tagSuggestions = allTags.filter((tag) => {
-  const alreadySelected = editForm.tags.some(
-    (selectedTag) => selectedTag.toLowerCase() === tag.toLowerCase()
-  );
+  const tagSuggestions = allTags.filter((tag) => {
+    const alreadySelected = editForm.tags.some(
+      (selectedTag) => selectedTag.toLowerCase() === tag.toLowerCase()
+    );
 
-  if (alreadySelected) return false;
-  if (!normalizedTagInput) return true;
+    if (alreadySelected) return false;
+    if (!normalizedTagInput) return true;
 
-  return tag.toLowerCase().includes(normalizedTagInput);
-});
+    return tag.toLowerCase().includes(normalizedTagInput);
+  });
 
   const handleAddTag = (rawTag: string) => {
-  const tag = rawTag.trim();
-  if (!tag) return;
+    const tag = rawTag.trim();
+    if (!tag) return;
 
-  const exists = editForm.tags.some(
-    (item) => item.toLowerCase() === tag.toLowerCase()
-  );
+    const exists = editForm.tags.some(
+      (item) => item.toLowerCase() === tag.toLowerCase()
+    );
 
-  if (exists) {
+    if (exists) {
+      setTagInput("");
+      setShowTagSuggestions(false);
+      return;
+    }
+
+    setEditForm((prev) => ({
+      ...prev,
+      tags: [...prev.tags, tag],
+    }));
+
     setTagInput("");
     setShowTagSuggestions(false);
-    return;
-  }
+  };
 
-  setEditForm((prev) => ({
-    ...prev,
-    tags: [...prev.tags, tag],
-  }));
+  const handleRemoveTag = (tagToRemove: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  };
 
-  setTagInput("");
-  setShowTagSuggestions(false);
-};
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag(tagInput);
+    }
 
-const handleRemoveTag = (tagToRemove: string) => {
-  setEditForm((prev) => ({
-    ...prev,
-    tags: prev.tags.filter((tag) => tag !== tagToRemove),
-  }));
-};
+    if (e.key === "Backspace" && !tagInput.trim() && editForm.tags.length > 0) {
+      e.preventDefault();
+      handleRemoveTag(editForm.tags[editForm.tags.length - 1]);
+    }
+  };
 
-const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleAddTag(tagInput);
-  }
+  const handleTagSuggestionClick = (tag: string) => {
+    handleAddTag(tag);
+  };
 
-  if (e.key === "Backspace" && !tagInput.trim() && editForm.tags.length > 0) {
-    e.preventDefault();
-    handleRemoveTag(editForm.tags[editForm.tags.length - 1]);
-  }
-};
+  const ensureTagsExist = async (uid: string, tags: string[]) => {
+    const normalizedTags = Array.from(
+      new Set(tags.map((tag) => tag.trim()).filter((tag) => tag !== ""))
+    );
 
-const handleTagSuggestionClick = (tag: string) => {
-  handleAddTag(tag);
-};
+    if (normalizedTags.length === 0) return;
 
-const ensureTagsExist = async (uid: string, tags: string[]) => {
-  const normalizedTags = Array.from(
-    new Set(
-      tags
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "")
-    )
-  );
+    const q = query(collection(db, "tags"), where("uid", "==", uid));
+    const snapshot = await getDocs(q);
 
-  if (normalizedTags.length === 0) return;
+    const existingTagNames = snapshot.docs.map((docSnap) =>
+      String(docSnap.data().name || "")
+        .trim()
+        .toLowerCase()
+    );
 
-  const q = query(
-    collection(db, "tags"),
-    where("uid", "==", uid)
-  );
+    const missingTags = normalizedTags.filter(
+      (tag) => !existingTagNames.includes(tag.toLowerCase())
+    );
 
-  const snapshot = await getDocs(q);
+    await Promise.all(
+      missingTags.map((tag) =>
+        addDoc(collection(db, "tags"), {
+          name: tag,
+          uid,
+          createdAt: new Date(),
+        })
+      )
+    );
+  };
 
-  const existingTagNames = snapshot.docs.map((docSnap) =>
-    String(docSnap.data().name || "").trim().toLowerCase()
-  );
+  const handleSave = async () => {
+    if (!user) return;
 
-  const missingTags = normalizedTags.filter(
-    (tag) => !existingTagNames.includes(tag.toLowerCase())
-  );
+    try {
+      setSaving(true);
 
-  await Promise.all(
-    missingTags.map((tag) =>
-      addDoc(collection(db, "tags"), {
-        name: tag,
-        uid,
-        createdAt: new Date(),
-      })
-    )
-  );
-};
+      const normalizedShelf = normalizeShelfName(editForm.shelf);
 
-const handleSave = async () => {
-  if (!user) return;
+      await ensureTagsExist(user.uid, editForm.tags);
 
-  try {
-    setSaving(true);
+      await updateDoc(doc(db, "books", bookId), {
+        title: editForm.title.trim() || "タイトルなし",
+        isbn: editForm.isbn.trim(),
+        publisher: editForm.publisher.trim(),
+        author: editForm.author.trim(),
+        authors: editForm.author.trim()
+          ? editForm.author
+              .split(",")
+              .map((name) => name.trim())
+              .filter((name) => name !== "")
+          : [],
+        shelf: normalizedShelf,
+        owned: editForm.owned,
+        status: editForm.status,
+        finishedDate: editForm.finishedDate || "",
+        memo: editForm.memo,
+        tags: editForm.tags,
+        updatedAt: new Date(),
+        subTitle: editForm.subTitle.trim(),
+        seriesName: editForm.seriesName.trim(),
+        isEbook: editForm.isEbook,
+      });
 
-    const normalizedShelf = normalizeShelfName(editForm.shelf);
-
-    await ensureTagsExist(user.uid, editForm.tags);
-
-    await updateDoc(doc(db, "books", bookId), {
-      title: editForm.title.trim() || "タイトルなし",
-      isbn: editForm.isbn.trim(),
-      publisher: editForm.publisher.trim(),
-      author: editForm.author.trim(),
-      authors: editForm.author.trim()
-        ? editForm.author
-            .split(",")
-            .map((name) => name.trim())
-            .filter((name) => name !== "")
-        : [],
-      shelf: normalizedShelf,
-      owned: editForm.owned,
-      status: editForm.status,
-      finishedDate: editForm.finishedDate || "",
-      memo: editForm.memo,
-      tags: editForm.tags,
-      updatedAt: new Date(),
-      subTitle: editForm.subTitle.trim(),
-      seriesName: editForm.seriesName.trim(),
-      isEbook: editForm.isEbook,
-    });
-
-    alert("更新しました");
-    router.push("/");
-  } catch (error) {
-    console.error(error);
-    alert("更新に失敗しました");
-  } finally {
-    setSaving(false);
-  }
-};
+      alert("更新しました");
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      alert("更新に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     const confirmed = window.confirm("この本を削除しますか？");
@@ -453,31 +436,32 @@ const handleSave = async () => {
   }
 
   if (!isAllowedEmail(user.email)) {
-  return (
-    <main style={ui.layout.page}>
-      <div style={ui.layout.pageWrap}>
-        <p>このアカウントでは利用できません</p>
+    return (
+      <main style={ui.layout.page}>
+        <div style={ui.layout.pageWrap}>
+          <p>このアカウントでは利用できません</p>
 
-        <button
-          style={ui.button.muted}
-          onClick={async () => {
-            await signOut(auth);
-            router.push("/");
-          }}
-        >
-          ログアウト
-        </button>
-      </div>
-    </main>
-  );
-}
+          <button
+            style={ui.button.muted}
+            onClick={async () => {
+              await signOut(auth);
+              router.push("/");
+            }}
+          >
+            ログアウト
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
-  <main
-    style={{
-      ...ui.layout.page,
-      paddingBottom: "96px",
-    }}
-  >
+    <main
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
       <style jsx>{`
         .pageWrap {
           max-width: 760px;
@@ -497,6 +481,29 @@ const handleSave = async () => {
           gap: 20px;
           align-items: start;
           margin-bottom: 24px;
+        }
+
+        .tabRow {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 20px;
+        }
+
+        .tabButton {
+          border: 1px solid ${ui.colors.border};
+          background: ${ui.colors.cardBg};
+          color: ${ui.colors.text};
+          border-radius: 999px;
+          padding: 10px 16px;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .tabButtonActive {
+          background: ${ui.colors.text};
+          color: ${ui.colors.cardBg};
+          border-color: ${ui.colors.text};
         }
 
         .fieldGrid {
@@ -539,7 +546,11 @@ const handleSave = async () => {
       <div className="pageWrap">
         <Link
           href="/"
-          style={{ ...ui.button.secondary, display: "inline-block", marginBottom: "20px" }}
+          style={{
+            ...ui.button.secondary,
+            display: "inline-block",
+            marginBottom: "20px",
+          }}
         >
           ← 戻る
         </Link>
@@ -622,360 +633,413 @@ const handleSave = async () => {
                   {normalizeShelfName(editForm.shelf)}
                 </span>
 
-                {editForm.owned && (
-                  <span style={ui.badge.owned}>
-                    所持
+                {editForm.owned && <span style={ui.badge.owned}>所持</span>}
+
+                {editForm.isEbook && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      borderRadius: "999px",
+                      background: ui.colors.hoverBg,
+                      color: ui.colors.text,
+                      border: `1px solid ${ui.colors.border}`,
+                    }}
+                  >
+                    電子書籍
                   </span>
                 )}
-
               </div>
             </div>
           </div>
+
+          <div className="tabRow">
+  <button
+    type="button"
+    className={`tabButton ${
+      activeTab === "basic" ? "tabButtonActive" : ""
+    }`}
+    onClick={() => setActiveTab("basic")}
+  >
+    基本情報
+  </button>
+
+  <button
+    type="button"
+    className={`tabButton ${
+      activeTab === "settings" ? "tabButtonActive" : ""
+    }`}
+    onClick={() => setActiveTab("settings")}
+  >
+    ステータス・管理
+  </button>
+</div>
 
           <div className="fieldGrid">
-            <div className="fieldFull">
-              <p style={ui.input.label}>タイトル</p>
-              <input
-                type="text"
-                value={editForm.title}
-                onChange={(e) => handleEditChange("title", e.target.value)}
-                style={ui.input.base}
-              />
-            </div>
+            {activeTab === "settings" ? (
+              <>
+                <div>
+                  <p style={ui.input.label}>ステータス</p>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    style={ui.input.base}
+                  >
+                    <option value="未読">未読</option>
+                    <option value="読書中">読書中</option>
+                    <option value="読了">読了</option>
+                  </select>
+                </div>
 
-<div className="fieldFull">
-  <p style={ui.input.label}>サブタイトル</p>
-  <input
-    type="text"
-    value={editForm.subTitle}
-    onChange={(e) => handleEditChange("subTitle", e.target.value)}
-    style={ui.input.base}
-  />
-</div>
-            <div className="fieldFull">
-              <p style={ui.input.label}>著者</p>
-              <input
-                type="text"
-                value={editForm.author}
-                onChange={(e) => handleEditChange("author", e.target.value)}
-                style={ui.input.base}
-              />
-            </div>
+                <div>
+                  <p style={ui.input.label}>読了日</p>
+                  <input
+                    type="date"
+                    value={editForm.finishedDate}
+                    onChange={(e) =>
+                      handleEditChange("finishedDate", e.target.value)
+                    }
+                    disabled={editForm.status !== "読了"}
+                    style={{
+                      ...ui.input.base,
+                      background:
+                        editForm.status !== "読了"
+                          ? ui.colors.inputDisabledBg
+                          : ui.colors.cardBg,
+                    }}
+                  />
 
-            <div>
-              <p style={ui.input.label}>ISBN</p>
-              <input
-                type="text"
-                value={editForm.isbn}
-                onChange={(e) => handleEditChange("isbn", e.target.value)}
-                style={ui.input.base}
-              />
-            </div>
+                  <div style={{ marginTop: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleEditChange("finishedDate", "")}
+                      style={ui.button.smallMuted}
+                    >
+                      読了日を未指定にする
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <p style={ui.input.label}>出版社</p>
-              <input
-                type="text"
-                value={editForm.publisher}
-                onChange={(e) => handleEditChange("publisher", e.target.value)}
-                style={ui.input.base}
-              />
-            </div>
+                <div>
+                  <p style={ui.input.label}>所持</p>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "10px 12px",
+                      border: `1px solid ${ui.colors.inputBorder}`,
+                      borderRadius: "8px",
+                      background: ui.colors.cardBg,
+                      fontSize: "16px",
+                      color: ui.colors.text,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editForm.owned}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          owned: e.target.checked,
+                        }))
+                      }
+                    />
+                    所持
+                  </label>
+                </div>
 
-            <div>
-  <p style={ui.input.label}>シリーズ名</p>
-  <input
-    type="text"
-    value={editForm.seriesName}
-    onChange={(e) => handleEditChange("seriesName", e.target.value)}
-    style={ui.input.base}
-  />
-</div>
+                <div>
+                  <p style={ui.input.label}>電子書籍</p>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "10px 12px",
+                      border: `1px solid ${ui.colors.inputBorder}`,
+                      borderRadius: "8px",
+                      background: ui.colors.cardBg,
+                      fontSize: "16px",
+                      color: ui.colors.text,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editForm.isEbook}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          isEbook: e.target.checked,
+                        }))
+                      }
+                    />
+                    電子書籍
+                  </label>
+                </div>
 
-            <div>
-              <p style={ui.input.label}>棚</p>
-              <select
-                value={editForm.shelf}
-                onChange={(e) => handleEditChange("shelf", e.target.value)}
-                style={ui.input.base}
-              >
-                {shelfList.map((shelf) => (
-                  <option key={shelf} value={shelf}>
-                    {shelf}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>棚</p>
+                  <select
+                    value={editForm.shelf}
+                    onChange={(e) => handleEditChange("shelf", e.target.value)}
+                    style={ui.input.base}
+                  >
+                    <option value="">未分類</option>
+                    {shelfList.map((shelf) => (
+                      <option key={shelf} value={shelf}>
+                        {shelf}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <p style={ui.input.label}>所持</p>
+                <div className="fieldFull" style={{ position: "relative" }}>
+                  <p style={ui.input.label}>タグ</p>
 
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "10px 12px",
-                  border: `1px solid ${ui.colors.inputBorder}`,
-                  borderRadius: "8px",
-                  background: ui.colors.cardBg,
-                  fontSize: "16px",
-                  color: ui.colors.text,
-                  boxSizing: "border-box",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={editForm.owned}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      owned: e.target.checked,
-                    }))
-                  }
-                />
-                所持
-              </label>
-            </div>
+                  <div
+                    style={{
+                      ...ui.input.base,
+                      minHeight: "48px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "8px",
+                      alignItems: "center",
+                      padding: "8px 10px",
+                    }}
+                  >
+                    {editForm.tags.map((tag, index) => (
+                      <span
+                        key={`${tag}-${index}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          background: ui.colors.tagBg,
+                          color: ui.colors.tagText,
+                          padding: "6px 10px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          lineHeight: 1,
+                        }}
+                      >
+                        #{tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            color: ui.colors.tagText,
+                            fontSize: "14px",
+                            padding: 0,
+                            lineHeight: 1,
+                          }}
+                          aria-label={`${tag} を削除`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
 
-            <div>
-  <p style={ui.input.label}>電子書籍</p>
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => {
+                        setTagInput(e.target.value);
+                        setShowTagSuggestions(true);
+                      }}
+                      onKeyDown={handleTagInputKeyDown}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          setShowTagSuggestions(false);
+                        }, 150);
+                      }}
+                      placeholder="タグを入力して Enter で追加"
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        background: "transparent",
+                        flex: 1,
+                        minWidth: "140px",
+                        fontSize: "14px",
+                        color: ui.colors.text,
+                      }}
+                    />
+                  </div>
 
-  <label
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      padding: "10px 12px",
-      border: `1px solid ${ui.colors.inputBorder}`,
-      borderRadius: "8px",
-      background: ui.colors.cardBg,
-    }}
-  >
-    <input
-      type="checkbox"
-      checked={editForm.isEbook}
-      onChange={(e) =>
-        setEditForm((prev) => ({
-          ...prev,
-          isEbook: e.target.checked,
-        }))
-      }
-    />
-    電子書籍
-  </label>
-</div>
+                  <p
+                    style={{
+                      margin: "6px 0 0 0",
+                      color: ui.colors.subText,
+                      fontSize: "12px",
+                    }}
+                  >
+                    Enterで追加。×ですぐ削除できます
+                  </p>
 
-            <div>
-              <p style={ui.input.label}>ステータス</p>
-              <select
-                value={editForm.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                style={ui.input.base}
-              >
-                <option value="未読">未読</option>
-                <option value="読書中">読書中</option>
-                <option value="読了">読了</option>
-              </select>
-            </div>
+                  {showTagSuggestions && tagSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "86px",
+                        left: 0,
+                        right: 0,
+                        background: ui.colors.cardBg,
+                        border: `1px solid ${ui.colors.border}`,
+                        borderRadius: "8px",
+                        boxShadow: `0 4px 12px ${ui.colors.shadow}`,
+                        maxHeight: "180px",
+                        overflowY: "auto",
+                        zIndex: 10,
+                      }}
+                    >
+                      {tagSuggestions.slice(0, 8).map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleTagSuggestionClick(tag)}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "10px 12px",
+                            background: ui.colors.cardBg,
+                            border: "none",
+                            borderBottom: `1px solid ${ui.colors.borderSoft}`,
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            color: ui.colors.text,
+                          }}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-            <div className="fieldFull">
-              <p style={ui.input.label}>読了日</p>
-              <input
-                type="date"
-                value={editForm.finishedDate}
-                onChange={(e) => handleEditChange("finishedDate", e.target.value)}
-                disabled={editForm.status !== "読了"}
-                style={{
-                  ...ui.input.base,
-                  background:
-                    editForm.status !== "読了"
-                      ? ui.colors.inputDisabledBg
-                      : ui.colors.cardBg,
-                }}
-              />
+                <div className="fieldFull">
+                  <p style={ui.input.label}>メモ</p>
+                  <textarea
+                    value={editForm.memo}
+                    onChange={(e) => handleEditChange("memo", e.target.value)}
+                    rows={5}
+                    style={{
+                      ...ui.input.textarea,
+                      minHeight: "120px",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>タイトル</p>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => handleEditChange("title", e.target.value)}
+                    style={ui.input.base}
+                  />
+                </div>
 
-              <div style={{ marginTop: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => handleEditChange("finishedDate", "")}
-                  style={ui.button.smallMuted}
-                >
-                  読了日を未指定にする
-                </button>
-              </div>
-            </div>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>サブタイトル</p>
+                  <input
+                    type="text"
+                    value={editForm.subTitle}
+                    onChange={(e) =>
+                      handleEditChange("subTitle", e.target.value)
+                    }
+                    style={ui.input.base}
+                  />
+                </div>
 
-            <div className="fieldFull" style={{ position: "relative" }}>
-  <p style={ui.input.label}>タグ</p>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>著者</p>
+                  <input
+                    type="text"
+                    value={editForm.author}
+                    onChange={(e) => handleEditChange("author", e.target.value)}
+                    style={ui.input.base}
+                  />
+                </div>
 
-  <div
-    style={{
-      ...ui.input.base,
-      minHeight: "48px",
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "8px",
-      alignItems: "center",
-      padding: "8px 10px",
-    }}
-  >
-    {editForm.tags.map((tag, index) => (
-      <span
-        key={`${tag}-${index}`}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          background: ui.colors.tagBg,
-          color: ui.colors.tagText,
-          padding: "6px 10px",
-          borderRadius: "999px",
-          fontSize: "13px",
-          lineHeight: 1,
-        }}
-      >
-        #{tag}
-        <button
-          type="button"
-          onClick={() => handleRemoveTag(tag)}
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            color: ui.colors.tagText,
-            fontSize: "14px",
-            padding: 0,
-            lineHeight: 1,
-          }}
-          aria-label={`${tag} を削除`}
-        >
-          ×
-        </button>
-      </span>
-    ))}
+                <div className="fieldFull">
+                  <p style={ui.input.label}>出版社</p>
+                  <input
+                    type="text"
+                    value={editForm.publisher}
+                    onChange={(e) =>
+                      handleEditChange("publisher", e.target.value)
+                    }
+                    style={ui.input.base}
+                  />
+                </div>
 
-    <input
-      type="text"
-      value={tagInput}
-      onChange={(e) => {
-        setTagInput(e.target.value);
-        setShowTagSuggestions(true);
-      }}
-      onKeyDown={handleTagInputKeyDown}
-      onFocus={() => setShowTagSuggestions(true)}
-      onBlur={() => {
-        setTimeout(() => {
-          setShowTagSuggestions(false);
-        }, 150);
-      }}
-      placeholder="タグを入力して Enter で追加"
-      style={{
-        border: "none",
-        outline: "none",
-        background: "transparent",
-        flex: 1,
-        minWidth: "140px",
-        fontSize: "14px",
-        color: ui.colors.text,
-      }}
-    />
-  </div>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>シリーズ名</p>
+                  <input
+                    type="text"
+                    value={editForm.seriesName}
+                    onChange={(e) =>
+                      handleEditChange("seriesName", e.target.value)
+                    }
+                    style={ui.input.base}
+                  />
+                </div>
 
-  <p
-    style={{
-      margin: "6px 0 0 0",
-      color: ui.colors.subText,
-      fontSize: "12px",
-    }}
-  >
-    Enterで追加。×ですぐ削除できます
-  </p>
-
-  {showTagSuggestions && tagSuggestions.length > 0 && (
-    <div
-      style={{
-        position: "absolute",
-        top: "86px",
-        left: 0,
-        right: 0,
-        background: ui.colors.cardBg,
-        border: `1px solid ${ui.colors.border}`,
-        borderRadius: "8px",
-        boxShadow: `0 4px 12px ${ui.colors.shadow}`,
-        maxHeight: "180px",
-        overflowY: "auto",
-        zIndex: 10,
-      }}
-    >
-      {tagSuggestions.slice(0, 8).map((tag) => (
-        <button
-          key={tag}
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => handleTagSuggestionClick(tag)}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            padding: "10px 12px",
-            background: ui.colors.cardBg,
-            border: "none",
-            borderBottom: `1px solid ${ui.colors.borderSoft}`,
-            cursor: "pointer",
-            fontSize: "14px",
-            color: ui.colors.text,
-          }}
-        >
-          #{tag}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
-
-            <div className="fieldFull">
-              <p style={ui.input.label}>メモ</p>
-              <textarea
-                value={editForm.memo}
-                onChange={(e) => handleEditChange("memo", e.target.value)}
-                rows={5}
-                style={ui.input.textarea}
-              />
-            </div>
+                <div className="fieldFull">
+                  <p style={ui.input.label}>ISBN</p>
+                  <input
+                    type="text"
+                    value={editForm.isbn}
+                    onChange={(e) => handleEditChange("isbn", e.target.value)}
+                    style={ui.input.base}
+                  />
+                </div>
+              </>
+            )}
           </div>
-          
-          {book?.createdAt && (
-  <p
-    style={{
-      margin: "8px 0 0 0",
-      color: ui.colors.subText,
-      fontSize: "12px",
-      lineHeight: 1.5,
-    }}
-  >
-    登録日：
-    {book.createdAt?.toDate
-      ? book.createdAt.toDate().toLocaleDateString("ja-JP")
-      : new Date(book.createdAt).toLocaleDateString("ja-JP")}
-  </p>
-)}
 
-{book?.updatedAt && (
-  <p
-    style={{
-      margin: "4px 0 0 0",
-      color: ui.colors.subText,
-      fontSize: "12px",
-      lineHeight: 1.5,
-    }}
-  >
-    更新日：
-    {book.updatedAt?.toDate
-      ? book.updatedAt.toDate().toLocaleDateString("ja-JP")
-      : new Date(book.updatedAt).toLocaleDateString("ja-JP")}
-  </p>
-)}
+          {book?.createdAt && (
+            <p
+              style={{
+                margin: "8px 0 0 0",
+                color: ui.colors.subText,
+                fontSize: "12px",
+                lineHeight: 1.5,
+              }}
+            >
+              登録日：
+              {book.createdAt?.toDate
+                ? book.createdAt.toDate().toLocaleDateString("ja-JP")
+                : new Date(book.createdAt).toLocaleDateString("ja-JP")}
+            </p>
+          )}
+
+          {book?.updatedAt && (
+            <p
+              style={{
+                margin: "4px 0 0 0",
+                color: ui.colors.subText,
+                fontSize: "12px",
+                lineHeight: 1.5,
+              }}
+            >
+              更新日：
+              {book.updatedAt?.toDate
+                ? book.updatedAt.toDate().toLocaleDateString("ja-JP")
+                : new Date(book.updatedAt).toLocaleDateString("ja-JP")}
+            </p>
+          )}
 
           <div className="actionRow">
             <button
