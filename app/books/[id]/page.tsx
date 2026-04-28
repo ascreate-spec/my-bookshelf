@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db, auth } from "../../../lib/firebase";
-import { ui } from "../../../lib/ui";
+import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "@/lib/ui";
 import {
   addDoc,
   collection,
@@ -547,12 +547,28 @@ export default function BookEditPage() {
         <Link
           href="/"
           style={{
-            ...ui.button.secondary,
-            display: "inline-block",
+            ...ui.button.back,
             marginBottom: "20px",
           }}
+          onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonBack)}
+          onMouseLeave={clearHoverStyle}
+          aria-label="戻る"
         >
-          ← 戻る
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M15 6L9 12L15 18"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </Link>
 
         <h1 style={ui.layout.sectionTitle}>本を編集</h1>

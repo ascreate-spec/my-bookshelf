@@ -495,7 +495,12 @@ const handleTagFilterKeyDown = (
   }
 
   .bookCard {
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .bookCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(38, 51, 34, 0.10);
   }
 
   .filterBox {
@@ -982,8 +987,6 @@ const handleTagFilterKeyDown = (
                   className="bookCard"
                   style={ui.card.clickable}
                   onClick={() => router.push(`/books/${book.id}`)}
-                  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
-                  onMouseLeave={clearHoverStyle}
                 >
                   <div
                     style={{
@@ -1079,8 +1082,6 @@ const handleTagFilterKeyDown = (
     className="bookCard"
     style={ui.card.clickable}
     onClick={() => router.push(`/books/${item.book.id}`)}
-    onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
-    onMouseLeave={clearHoverStyle}
   >
               <div
                 style={{
@@ -1187,8 +1188,6 @@ const handleTagFilterKeyDown = (
           className="bookCard"
           style={ui.card.clickable}
           onClick={() => router.push(`/books/${book.id}`)}
-          onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.card)}
-          onMouseLeave={clearHoverStyle}
         >
           <div
             style={{

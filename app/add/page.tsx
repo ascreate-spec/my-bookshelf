@@ -6,9 +6,10 @@ import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { isAllowedEmail } from "../../lib/authGuard";
-import { ui } from "../../lib/ui";
+import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "@/lib/ui";
 import BottomNav from "../../components/BottomNav";
 import { searchBooks, type BookSearchItem } from "../../lib/bookSearch";
+import Link from "next/link";
 
 type SavedBookInput = {
   title: string;
@@ -324,13 +325,30 @@ export default function AddBookPage() {
           margin-top: 16px;
         }
 
-        .resultCard {
-          border: 1px solid ${ui.colors.border};
-          border-radius: 12px;
-          background: ${ui.colors.cardBg};
-          padding: 14px;
-          cursor: pointer;
-        }
+.resultCard {
+  position: relative;
+  border: 1px solid ${ui.colors.border};
+  border-radius: 12px;
+  background: ${ui.colors.cardBg};
+  padding: 14px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.resultCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(38, 51, 34, 0.1);
+}
+
+.resultCardSelected {
+  background: ${ui.colors.selectedBg};
+  border-color: ${ui.colors.selectedBorder};
+  box-shadow: 0 0 0 2px rgba(75, 107, 70, 0.14);
+}
 
         .selectedArea {
           margin-top: 20px;
@@ -363,15 +381,32 @@ export default function AddBookPage() {
       `}</style>
 
       <div className="pageWrap">
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            ...ui.button.secondary,
-            marginBottom: "20px",
-          }}
-        >
-          ← 戻る
-        </button>
+        <Link
+  href="/"
+  style={{
+    ...ui.button.back,
+    marginBottom: "20px",
+  }}
+  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonBack)}
+  onMouseLeave={clearHoverStyle}
+  aria-label="戻る"
+>
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M15 6L9 12L15 18"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+</Link>
 
         <h1 style={ui.layout.sectionTitle}>本を追加</h1>
         <p style={ui.layout.sectionDescription}>
@@ -432,12 +467,17 @@ export default function AddBookPage() {
 
             {searchResults.length > 0 && (
               <div className="resultList">
-                {searchResults.map((result, index) => (
-                  <div
-                    key={`${result.isbn}-${index}`}
-                    className="resultCard"
-                    onClick={() => setSelectedBook(result)}
-                  >
+                {searchResults.map((result, index) => {
+  const isSelected =
+    selectedBook?.isbn === result.isbn &&
+    selectedBook?.title === result.title;
+
+  return (
+    <div
+      key={`${result.isbn || result.title}-${index}`}
+      className={`resultCard ${isSelected ? "resultCardSelected" : ""}`}
+      onClick={() => setSelectedBook(result)}
+    >
                     <div
                       style={{
                         display: "grid",
@@ -490,8 +530,9 @@ export default function AddBookPage() {
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                      </div>
+  );
+})}
               </div>
             )}
 
