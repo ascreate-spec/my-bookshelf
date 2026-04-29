@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import PageHeader from "../../components/PageHeader";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { isAllowedEmail } from "../../lib/authGuard";
@@ -40,11 +41,6 @@ function normalizeThumbnailUrl(url: string): string {
 export default function AddBookPage() {
   const router = useRouter();
 
-  const defaultShelves = useMemo(
-    () => ["絵本・児童書", "学習・参考書", "小説", "実用書", "未分類"],
-    []
-  );
-
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -59,7 +55,7 @@ export default function AddBookPage() {
 
   const [isEbook, setIsEbook] = useState(false);
   const [owned, setOwned] = useState(false);
-  const [selectedShelf, setSelectedShelf] = useState("未分類");
+  const [selectedShelf, setSelectedShelf] = useState("");
 
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthor, setManualAuthor] = useState("");
@@ -67,7 +63,7 @@ export default function AddBookPage() {
   const [manualIsbn, setManualIsbn] = useState("");
   const [manualIsEbook, setManualIsEbook] = useState(false);
   const [manualOwned, setManualOwned] = useState(false);
-  const [manualShelf, setManualShelf] = useState("未分類");
+  const [manualShelf, setManualShelf] = useState("");
 
   const [shelfList, setShelfList] = useState<string[]>([]);
 
@@ -81,54 +77,76 @@ export default function AddBookPage() {
 
   useEffect(() => {
     const fetchShelves = async () => {
-      if (!user) {
-        setShelfList(defaultShelves);
-        return;
-      }
+  if (!user) {
+    setShelfList([]);
+    return;
+  }
 
-      try {
-        const q = query(collection(db, "shelves"), where("uid", "==", user.uid));
-        const snapshot = await getDocs(q);
+  try {
+    const q = query(collection(db, "shelves"), where("uid", "==", user.uid));
+    const snapshot = await getDocs(q);
 
-        const customShelves = snapshot.docs
-          .map((docSnap) => String(docSnap.data().name || "").trim())
-          .filter(Boolean);
+    const customShelves = snapshot.docs
+      .map((docSnap) => String(docSnap.data().name || "").trim())
+      .filter(Boolean);
 
-        const merged = Array.from(
-          new Set([...customShelves, ...defaultShelves])
-        ).sort((a, b) => a.localeCompare(b, "ja"));
+    const uniqueShelves = Array.from(new Set(customShelves)).sort((a, b) =>
+      a.localeCompare(b, "ja")
+    );
 
-        setShelfList(merged);
-      } catch (error) {
-        console.error(error);
-        setShelfList(defaultShelves);
-      }
-    };
+    setShelfList(uniqueShelves);
+
+    if (uniqueShelves.length > 0) {
+      setSelectedShelf((prev) =>
+        prev && uniqueShelves.includes(prev) ? prev : ""
+      );
+
+      setManualShelf((prev) =>
+        prev && uniqueShelves.includes(prev) ? prev : ""
+      );
+    } else {
+      setSelectedShelf("");
+      setManualShelf("");
+    }
+  } catch (error) {
+    console.error(error);
+    setShelfList([]);
+    setSelectedShelf("");
+    setManualShelf("");
+  }
+};
 
     if (!authLoading) {
       fetchShelves();
     }
-  }, [user, authLoading, defaultShelves]);
+  }, [user, authLoading]);
 
   const handleSearch = async () => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed) {
-      alert("タイトル・著者・ISBNなどを入力してください");
-      return;
-    }
+  const trimmed = searchQuery.trim();
+  if (!trimmed) {
+    alert("タイトル・著者・ISBNなどを入力してください");
+    return;
+  }
 
-    try {
-      setSearchLoading(true);
-      setSelectedBook(null);
-      const results = await searchBooks(trimmed);
-      setSearchResults(results);
-    } catch (error) {
-      console.error(error);
-      alert("検索に失敗しました");
-    } finally {
-      setSearchLoading(false);
+  try {
+    setSearchLoading(true);
+    setSelectedBook(null);
+
+    const results = await searchBooks(trimmed);
+    console.log("検索結果:", results);
+
+    setSearchResults(results);
+
+    if (results.length === 0) {
+      alert("本が見つかりませんでした。別のキーワードで検索してください。");
     }
-  };
+  } catch (error) {
+    console.error(error);
+    alert("検索に失敗しました");
+  } finally {
+    setSearchLoading(false);
+  }
+};
 
   const handleSave = async () => {
     if (!user) return;
@@ -149,7 +167,7 @@ export default function AddBookPage() {
         publisher: selectedBook.publisher?.trim() || "",
         isbn: selectedBook.isbn?.trim() || "",
         image: normalizeThumbnailUrl(selectedBook.thumbnail || ""),
-        shelf: selectedShelf,
+        shelf: selectedShelf || "未分類",
         status: "未読",
         finishedDate: "",
         memo: "",
@@ -169,7 +187,7 @@ export default function AddBookPage() {
       setSelectedBook(null);
       setIsEbook(false);
       setOwned(false);
-      setSelectedShelf("未分類");
+      setSelectedShelf("");
       router.push("/");
     } catch (error) {
       console.error(error);
@@ -203,7 +221,7 @@ export default function AddBookPage() {
         publisher: manualPublisher.trim(),
         isbn: manualIsbn.trim(),
         image: "",
-        shelf: manualShelf,
+        shelf: manualShelf || "未分類",
         status: "未読",
         finishedDate: "",
         memo: "",
@@ -224,7 +242,7 @@ export default function AddBookPage() {
       setManualIsbn("");
       setManualIsEbook(false);
       setManualOwned(false);
-      setManualShelf("未分類");
+      setManualShelf("");
       router.push("/");
     } catch (error) {
       console.error(error);
@@ -381,34 +399,8 @@ export default function AddBookPage() {
       `}</style>
 
       <div className="pageWrap">
-        <Link
-  href="/"
-  style={{
-    ...ui.button.back,
-    marginBottom: "20px",
-  }}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonBack)}
-  onMouseLeave={clearHoverStyle}
-  aria-label="戻る"
->
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 6L9 12L15 18"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-</Link>
 
-        <h1 style={ui.layout.sectionTitle}>本を追加</h1>
+        <PageHeader title="本を追加" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           検索して追加、または手動で追加できます
         </p>
@@ -434,36 +426,79 @@ export default function AddBookPage() {
         {mode === "search" ? (
           <div className="sectionCard">
             <label style={ui.input.label}>タイトル・著者・ISBN で検索</label>
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap",
-              }}
-            >
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearch();
-                }}
-                placeholder="例: ぐりとぐら / 978..."
-                style={{
-                  ...ui.input.base,
-                  flex: 1,
-                  minWidth: "220px",
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleSearch}
-                disabled={searchLoading}
-                style={ui.button.primary}
-              >
-                {searchLoading ? "検索中..." : "検索"}
-              </button>
-            </div>
+
+<div
+  style={{
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    alignItems: "stretch",
+  }}
+>
+  <div
+    style={{
+      position: "relative",
+      flex: 1,
+      minWidth: "220px",
+    }}
+  >
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSearch();
+        }
+      }}
+      placeholder="本を検索"
+      style={{
+        ...ui.input.base,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        paddingRight: searchQuery ? "40px" : "12px",
+      }}
+    />
+
+    {searchQuery && (
+      <button
+        type="button"
+        onClick={() => {
+          setSearchQuery("");
+          setSearchResults([]);
+          setSelectedBook(null);
+        }}
+        aria-label="検索文字を消す"
+        style={{
+          position: "absolute",
+          right: "10px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          border: "none",
+          background: "transparent",
+          color: ui.colors.subText,
+          cursor: "pointer",
+          padding: "4px",
+          fontSize: "18px",
+          lineHeight: 1,
+        }}
+      >
+        ×
+      </button>
+    )}
+  </div>
+
+  <button
+    type="button"
+    onClick={() => handleSearch()}
+    disabled={searchLoading}
+    style={ui.button.primary}
+  >
+    {searchLoading ? "検索中..." : "検索"}
+  </button>
+</div>
 
             {searchResults.length > 0 && (
               <div className="resultList">
@@ -599,14 +634,16 @@ export default function AddBookPage() {
                     <select
                       value={selectedShelf}
                       onChange={(e) => setSelectedShelf(e.target.value)}
-                      style={{ ...ui.input.base, marginBottom: "12px" }}
+                      style={ui.input.base}
                     >
-                      <option value="未分類">未分類</option>
-                      {shelfList.map((shelf) => (
-                        <option key={shelf} value={shelf}>
-                          {shelf}
-                        </option>
-                      ))}
+                      <option value="">未分類</option>
+                      {shelfList
+                        .filter((shelf) => shelf !== "未分類")
+                        .map((shelf) => (
+                          <option key={shelf} value={shelf}>
+                            {shelf}
+                          </option>
+                        ))}
                     </select>
 
                     <label
@@ -703,18 +740,20 @@ export default function AddBookPage() {
 
               <div>
                 <label style={ui.input.label}>棚</label>
-                <select
-                  value={manualShelf}
-                  onChange={(e) => setManualShelf(e.target.value)}
-                  style={{ ...ui.input.base, marginBottom: "12px" }}
-                >
-                  <option value="未分類">未分類</option>
-                  {shelfList.map((shelf) => (
-                    <option key={shelf} value={shelf}>
-                      {shelf}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={manualShelf}
+                    onChange={(e) => setManualShelf(e.target.value)}
+                    style={ui.input.base}
+                  >
+                    <option value="">未分類</option>
+                    {shelfList
+                      .filter((shelf) => shelf !== "未分類")
+                      .map((shelf) => (
+                        <option key={shelf} value={shelf}>
+                          {shelf}
+                        </option>
+                      ))}
+                  </select>
               </div>
 
               <div>

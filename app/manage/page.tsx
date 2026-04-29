@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { ui } from "../../lib/ui";
 import BottomNav from "../../components/BottomNav";
+import PageHeader from "../../components/PageHeader";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -89,7 +90,7 @@ export default function ManagePage() {
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto" }}>
-        <h1 style={ui.layout.sectionTitle}>⚙️ 管理</h1>
+        <PageHeader title="管理" />
 
         <p style={{ ...ui.text.helper, marginBottom: "20px" }}>
           各種設定・データ管理はこちら
@@ -106,7 +107,7 @@ export default function ManagePage() {
             style={ui.button.secondary}
             className="manageMenuLink"
           >
-            タグを編集
+            タグ設定
           </Link>
 
           <Link
@@ -114,7 +115,7 @@ export default function ManagePage() {
             style={ui.button.secondary}
             className="manageMenuLink"
           >
-            棚を編集
+            棚設定
           </Link>
 
           <Link

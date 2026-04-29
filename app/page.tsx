@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import PageHeader from "../components/PageHeader";
 import { useRouter } from "next/navigation";
 import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "../lib/ui";
 import {
@@ -15,6 +16,7 @@ import {
 import { auth } from "../lib/firebase";
 import BottomNav from "../components/BottomNav";
 import { isAllowedEmail } from "../lib/authGuard";
+import BookBadges from "../components/BookBadges";
 
 type SavedBook = {
   id: string;
@@ -429,7 +431,7 @@ const handleTagFilterKeyDown = (
         }}
       >
         <div style={{ maxWidth: "400px", margin: "100px auto" }}>
-          <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
+          <PageHeader title="My Bookshelf" />
 
           <p style={{ marginBottom: "16px" }}>
             利用するにはログインしてください
@@ -538,32 +540,35 @@ const handleTagFilterKeyDown = (
 
       <div className="pageWrap">
         <div className="pageHeader">
-          <h1 style={ui.layout.sectionTitle}>📚 My Bookshelf</h1>
+          <PageHeader title="My Bookshelf" />
         </div>
 
-        <div style={{ marginBottom: "24px", maxWidth: "640px" }}>
-          <label htmlFor="searchText" style={ui.input.label}>
-            本を検索
-          </label>
+<div style={{ marginBottom: "24px", width: "100%" }}>
+  <label htmlFor="searchText" style={ui.input.label}>
+    本を検索
+  </label>
 
-          <div style={{ position: "relative" }}>
-  <input
-    id="searchText"
-    type="text"
-    value={searchText}
-    onChange={(e) => setSearchText(e.target.value)}
-    placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
-    style={{
-      ...ui.input.base,
-      paddingRight: "36px",
-    }}
-    onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    // 何もしなくてOK（リアルタイム検索だから）
-  }
-}}
-  />
+  <div style={{ position: "relative", width: "100%" }}>
+    <input
+      id="searchText"
+      type="text"
+      value={searchText}
+      onChange={(e) => setSearchText(e.target.value)}
+      placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
+      style={{
+        ...ui.input.base,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        paddingRight: "36px",
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          // 何もしなくてOK（リアルタイム検索だから）
+        }
+      }}
+    />
 
   {searchText && (
     <button
@@ -985,9 +990,24 @@ const handleTagFilterKeyDown = (
                 <div
                   key={book.id}
                   className="bookCard"
-                  style={ui.card.clickable}
+                  style={{
+                    ...ui.card.clickable,
+                    position: "relative",
+                  }}
                   onClick={() => router.push(`/books/${book.id}`)}
                 >
+                  {(book.owned || book.isEbook) && (
+  <div
+    style={{
+      position: "absolute",
+      top: "12px",
+      right: "12px",
+      zIndex: 1,
+    }}
+  >
+    <BookBadges owned={book.owned} isEbook={book.isEbook} />
+  </div>
+)}
                   <div
                     style={{
                       display: "flex",
@@ -1008,7 +1028,18 @@ const handleTagFilterKeyDown = (
                       />
                     )}
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+  style={{
+    flex: 1,
+    minWidth: 0,
+    paddingRight:
+  book.owned && book.isEbook
+    ? "76px"
+    : book.owned || book.isEbook
+      ? "42px"
+      : 0,
+  }}
+>
                       <p style={ui.text.title}>{book.title}</p>
 
                       {book.subTitle && (
@@ -1045,27 +1076,6 @@ const handleTagFilterKeyDown = (
                         <span style={ui.badge.shelf}>
                           {normalizeShelfName(book.shelf)}
                         </span>
-
-                        {book.owned && (
-                          <span style={ui.badge.owned}>
-                            所持
-                          </span>
-                        )}
-
-                        {book.isEbook && (
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              padding: "4px 8px",
-                              borderRadius: "999px",
-                              background: ui.colors.hoverBg,
-                              color: ui.colors.text,
-                              border: `1px solid ${ui.colors.border}`,
-                            }}
-                          >
-                            電子書籍
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1080,9 +1090,27 @@ const handleTagFilterKeyDown = (
   <div
     key={`single-${item.book.id}-${index}`}
     className="bookCard"
-    style={ui.card.clickable}
+    style={{
+      ...ui.card.clickable,
+      position: "relative",
+    }}
     onClick={() => router.push(`/books/${item.book.id}`)}
   >
+    {(item.book.owned || item.book.isEbook) && (
+      <div
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          zIndex: 1,
+        }}
+      >
+        <BookBadges
+        owned={item.book.owned}
+        isEbook={item.book.isEbook}
+      />
+    </div>
+    )}
               <div
                 style={{
                   display: "flex",
@@ -1103,7 +1131,18 @@ const handleTagFilterKeyDown = (
                   />
                 )}
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+  style={{
+    flex: 1,
+    minWidth: 0,
+    paddingRight:
+  item.book.owned && item.book.isEbook
+    ? "76px"
+    : item.book.owned || item.book.isEbook
+      ? "42px"
+      : 0,
+  }}
+>
                   <p style={ui.text.title}>{item.book.title}</p>
 
                   {item.book.subTitle && (
@@ -1152,27 +1191,6 @@ const handleTagFilterKeyDown = (
                     <span style={ui.badge.shelf}>
                       {normalizeShelfName(item.book.shelf)}
                     </span>
-
-                    {item.book.owned && (
-                      <span style={ui.badge.owned}>
-                        所持
-                      </span>
-                    )}
-
-                    {item.book.isEbook && (
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          padding: "4px 8px",
-                          borderRadius: "999px",
-                          background: ui.colors.hoverBg,
-                          color: ui.colors.text,
-                          border: `1px solid ${ui.colors.border}`,
-                        }}
-                      >
-                        電子書籍
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1186,9 +1204,24 @@ const handleTagFilterKeyDown = (
         <div
           key={book.id}
           className="bookCard"
-          style={ui.card.clickable}
+          style={{
+            ...ui.card.clickable,
+            position: "relative",
+          }}
           onClick={() => router.push(`/books/${book.id}`)}
         >
+          {(book.owned || book.isEbook) && (
+  <div
+    style={{
+      position: "absolute",
+      top: "12px",
+      right: "12px",
+      zIndex: 1,
+    }}
+  >
+    <BookBadges owned={book.owned} isEbook={book.isEbook} />
+  </div>
+)}
           <div
             style={{
               display: "flex",
@@ -1209,7 +1242,18 @@ const handleTagFilterKeyDown = (
               />
             )}
 
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+  style={{
+    flex: 1,
+    minWidth: 0,
+    paddingRight:
+  book.owned && book.isEbook
+    ? "76px"
+    : book.owned || book.isEbook
+      ? "42px"
+      : 0,
+  }}
+>
               <p style={ui.text.title}>{book.title}</p>
 
               {book.subTitle && (
@@ -1258,27 +1302,6 @@ const handleTagFilterKeyDown = (
                 <span style={ui.badge.shelf}>
                   {normalizeShelfName(book.shelf)}
                 </span>
-
-                {book.owned && (
-                  <span style={ui.badge.owned}>
-                    所持
-                  </span>
-                )}
-
-                {book.isEbook && (
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      padding: "4px 8px",
-                      borderRadius: "999px",
-                      background: ui.colors.hoverBg,
-                      color: ui.colors.text,
-                      border: `1px solid ${ui.colors.border}`,
-                    }}
-                  >
-                    電子書籍
-                  </span>
-                )}
               </div>
             </div>
           </div>

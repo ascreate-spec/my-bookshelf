@@ -18,6 +18,7 @@ import {
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { useParams, useRouter } from "next/navigation";
 import { isAllowedEmail } from "../../../lib/authGuard";
+import PageHeader from "../../../components/PageHeader";
 import BottomNav from "../../../components/BottomNav";
 
 type SavedBook = {
@@ -544,34 +545,8 @@ export default function BookEditPage() {
       `}</style>
 
       <div className="pageWrap">
-        <Link
-          href="/"
-          style={{
-            ...ui.button.back,
-            marginBottom: "20px",
-          }}
-          onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonBack)}
-          onMouseLeave={clearHoverStyle}
-          aria-label="戻る"
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M15 6L9 12L15 18"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Link>
 
-        <h1 style={ui.layout.sectionTitle}>本を編集</h1>
+        <PageHeader title="本を編集" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           この画面で本の編集と削除ができます
         </p>
@@ -710,20 +685,24 @@ export default function BookEditPage() {
                 <div>
                   <p style={ui.input.label}>読了日</p>
                   <input
-                    type="date"
-                    value={editForm.finishedDate}
-                    onChange={(e) =>
-                      handleEditChange("finishedDate", e.target.value)
-                    }
-                    disabled={editForm.status !== "読了"}
-                    style={{
-                      ...ui.input.base,
-                      background:
-                        editForm.status !== "読了"
-                          ? ui.colors.inputDisabledBg
-                          : ui.colors.cardBg,
-                    }}
-                  />
+  type="date"
+  value={editForm.finishedDate}
+  onChange={(e) =>
+    handleEditChange("finishedDate", e.target.value)
+  }
+  disabled={editForm.status !== "読了"}
+  style={{
+    ...ui.input.base,
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+    background:
+      editForm.status !== "読了"
+        ? ui.colors.inputDisabledBg
+        : ui.colors.cardBg,
+  }}
+/>
 
                   <div style={{ marginTop: "8px" }}>
                     <button

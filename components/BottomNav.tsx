@@ -142,7 +142,7 @@ export default function BottomNav() {
         display: "flex",
         justifyContent: "space-around",
         alignItems: "center",
-        padding: "10px 0 calc(10px + env(safe-area-inset-bottom))",
+        padding: "2px 0 calc(10px + env(safe-area-inset-bottom))",
         zIndex: 1000,
         boxShadow: "0 -4px 12px rgba(38, 51, 34, 0.06)",
       }}
@@ -176,7 +176,7 @@ export default function BottomNav() {
                   justifyContent: "center",
                   background: ui.colors.secondary, // 黄色の丸ボタン
                   boxShadow: "0 6px 16px rgba(38, 51, 34, 0.16)",
-                  transform: "translateY(-30px)",
+                  transform: "translateY(-22px)",
                 }}
               >
                 {item.icon}

@@ -18,6 +18,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "@/lib/ui";
 import { isAllowedEmail } from "../../lib/authGuard";
 import { signOut } from "firebase/auth";
+import PageHeader from "../../components/PageHeader";
 import BottomNav from "../../components/BottomNav";
 
 type TagItem = {
@@ -425,34 +426,8 @@ export default function TagsPage() {
       `}</style>
 
       <div className="pageWrap">
-        <Link
-          href="/"
-          style={{
-            ...ui.button.back,
-            marginBottom: "20px",
-          }}
-          onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonBack)}
-          onMouseLeave={clearHoverStyle}
-          aria-label="戻る"
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M15 6L9 12L15 18"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Link>
 
-        <h1 style={ui.layout.sectionTitle}>タグを編集</h1>
+        <PageHeader title="タグ設定" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           タグの追加・編集・削除ができます
         </p>
