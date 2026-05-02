@@ -369,11 +369,11 @@ setShelves(list);
 
   return (
     <main
-  style={{
-    ...ui.layout.page,
-    paddingBottom: "96px",
-  }}
->
+      style={{
+        ...ui.layout.page,
+        paddingBottom: "96px",
+      }}
+    >
       <style jsx>{`
         .pageWrap {
           max-width: 820px;
@@ -456,175 +456,185 @@ setShelves(list);
           }
         }
       `}</style>
-
-      <div className="pageWrap">
-
-        <PageHeader title="棚設定" backHref="/" />
+    <div className="pageWrap">
+         <PageHeader title="棚設定" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           棚の追加・編集・削除・並び替えができます
         </p>
 
-        <div className="addArea">
-          <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
-  <input
-    type="text"
-    value={newShelfName}
-    onChange={(e) => setNewShelfName(e.target.value)}
-    placeholder="新しい棚名を入力"
-    style={{
-      ...ui.input.base,
-      flex: 1,
-      minWidth: 0,
-      paddingRight: "36px",
-    }}
-    onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleAddShelf();
-  }
-}}
-  />
-
-  {newShelfName && (
-    <button
-      type="button"
-      onClick={() => setNewShelfName("")}
-      aria-label="棚名をクリア"
-      style={{
-        position: "absolute",
-        right: "8px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        fontSize: "16px",
-        color: ui.colors.subText,
-        padding: "4px",
-        lineHeight: 1,
+<div className="addArea" style={ui.shelvesPage.addArea}>
+  <div style={ui.shelvesPage.addInputWrap}>
+    <input
+      type="text"
+      value={newShelfName}
+      onChange={(e) => setNewShelfName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          handleAddShelf();
+        }
       }}
-    >
-      ×
-    </button>
-  )}
-</div>
-          <button
-            onClick={handleAddShelf}
-            disabled={addingShelf}
-            style={{
-              ...ui.button.primary,
-              whiteSpace: "nowrap",
-              padding: "12px 16px",
-            }}
-          >
-            {addingShelf ? "追加中..." : "棚を追加"}
-          </button>
-        </div>
+      placeholder="追加する棚名"
+      style={{
+        ...ui.input.base,
+        width: "100%",
+        boxSizing: "border-box",
+        padding: newShelfName ? "12px 36px 12px 12px" : "12px",
+      }}
+    />
 
-        {loading && <p style={ui.text.helper}>読み込み中...</p>}
+    {newShelfName && (
+      <button
+        type="button"
+        onClick={() => setNewShelfName("")}
+        aria-label="入力を消す"
+        style={ui.shelvesPage.clearButton}
+      >
+        ×
+      </button>
+    )}
+  </div>
+
+  <button
+    type="button"
+    onClick={handleAddShelf}
+    disabled={addingShelf}
+    style={{
+      ...ui.button.primary,
+      ...ui.shelvesPage.addButtonInline,
+    }}
+  >
+    {addingShelf ? "追加中..." : "棚を追加"}
+  </button>
+</div>
+
+{loading && <p style={ui.text.helper}>読み込み中...</p>}
 
         {!loading && (
           <div className="listBox">
-            {shelves.map((shelf, index) => (
-              <div
-                key={shelf.id}
-                className="row"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = ui.colors.selectedBg;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "";
-                }}
-              >
-                {editingShelfId === shelf.id ? (
-                  <div className="editRow">
-                    <div>
-                      <input
-                        type="text"
-                        value={editingShelfName}
-                        onChange={(e) => setEditingShelfName(e.target.value)}
-                        style={ui.input.base}
-                      />
-                    </div>
+            {shelves.map((shelf, index) => {
+  const isFixedShelf = shelf.name === "未分類";
+  const isFirstShelf = index === 0;
+  const isLastShelf = index === shelves.length - 1;
 
-                    <div className="editActions">
-                      <button
-                        onClick={() => handleShelfUpdate(shelf)}
-                        style={ui.button.smallPrimary}
-                      >
-                        保存
-                      </button>
+  const canMoveUp = !isFixedShelf && !isFirstShelf;
+  const canMoveDown = !isFixedShelf && !isLastShelf;
+  const canEdit = !isFixedShelf;
+  const canDelete = !isFixedShelf;
 
-                      <button
-                        onClick={handleEditCancel}
-                        style={ui.button.smallMuted}
-                      >
-                        キャンセル
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                        color: ui.colors.text,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {shelf.name}
-                    </div>
+  return (
+    <div
+      key={shelf.id}
+      className="row"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = ui.colors.selectedBg;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "";
+      }}
+    >
+      {editingShelfId === shelf.id ? (
+        <div className="editRow">
+          <div>
+            <input
+              type="text"
+              value={editingShelfName}
+              onChange={(e) => setEditingShelfName(e.target.value)}
+              style={ui.input.base}
+            />
+          </div>
 
-                    <div className="actions">
-                      <button
-                        onClick={() => handleMoveShelf(index, "up")}
-                        disabled={index === 0 || shelf.name === "未分類"}
-                        style={
-                          index === 0 || shelf.name === "未分類"
-                            ? ui.button.smallMuted
-                            : ui.button.smallSecondary
-                        }
-                      >
-                        ↑
-                      </button>
+          <div className="editActions">
+            <button
+              type="button"
+              onClick={() => handleShelfUpdate(shelf)}
+              style={ui.button.smallPrimary}
+            >
+              保存
+            </button>
 
-                      <button
-                        onClick={() => handleMoveShelf(index, "down")}
-                        disabled={index === shelves.length - 1 || shelf.name === "未分類"}
-                        style={
-                          index === shelves.length - 1 || shelf.name === "未分類"
-                            ? ui.button.smallMuted
-                            : ui.button.smallSecondary
-                        }
-                      >
-                        ↓
-                      </button>
+            <button
+              type="button"
+              onClick={handleEditCancel}
+              style={ui.button.smallMuted}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              fontWeight: "bold",
+              fontSize: "16px",
+              color: ui.colors.text,
+              wordBreak: "break-word",
+            }}
+          >
+            {shelf.name}
+          </div>
 
-                      <button
-                        onClick={() => handleEditStart(shelf)}
-                        disabled={shelf.name === "未分類"}
-                        style={
-                          shelf.name === "未分類"
-                            ? ui.button.smallMuted
-                            : ui.button.smallSecondary
-                        }
-                      >
-                        編集
-                      </button>
+          <div className="actions">
+            <button
+              type="button"
+              onClick={() => handleMoveShelf(index, "up")}
+              disabled={!canMoveUp}
+              style={{
+                ...ui.button.edit,
+                ...ui.tagsPage.smallActionButton,
+                opacity: canMoveUp ? 1 : 0.45,
+                cursor: canMoveUp ? "pointer" : "not-allowed",
+              }}
+            >
+              ↑
+            </button>
 
-                      <button
-                        onClick={() => handleShelfDelete(shelf)}
-                        disabled={shelf.name === "未分類"}
-                        style={ui.button.smallMuted}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+            <button
+              type="button"
+              onClick={() => handleMoveShelf(index, "down")}
+              disabled={!canMoveDown}
+              style={{
+                ...ui.button.edit,
+                ...ui.tagsPage.smallActionButton,
+                opacity: canMoveDown ? 1 : 0.45,
+                cursor: canMoveDown ? "pointer" : "not-allowed",
+              }}
+            >
+              ↓
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleEditStart(shelf)}
+              disabled={!canEdit}
+              style={{
+                ...ui.button.edit,
+                ...ui.tagsPage.smallActionButton,
+                opacity: canEdit ? 1 : 0.45,
+                cursor: canEdit ? "pointer" : "not-allowed",
+              }}
+            >
+              編集
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleShelfDelete(shelf)}
+              disabled={!canDelete}
+              style={{
+                ...ui.button.smallMuted,
+                opacity: canDelete ? 1 : 0.45,
+                cursor: canDelete ? "pointer" : "not-allowed",
+              }}
+            >
+              削除
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+})}
           </div>
         )}
       </div>

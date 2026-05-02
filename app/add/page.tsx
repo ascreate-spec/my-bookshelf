@@ -7,7 +7,7 @@ import PageHeader from "../../components/PageHeader";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { isAllowedEmail } from "../../lib/authGuard";
-import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "@/lib/ui";
+import { ui } from "@/lib/ui";
 import BottomNav from "../../components/BottomNav";
 import { searchBooks, type BookSearchItem } from "../../lib/bookSearch";
 import Link from "next/link";
@@ -398,50 +398,45 @@ export default function AddBookPage() {
         }
       `}</style>
 
-      <div className="pageWrap">
+      <div style={ui.addPage.pageWrap}>
 
         <PageHeader title="本を追加" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           検索して追加、または手動で追加できます
         </p>
 
-        <div className="tabRow">
+        <div style={ui.addPage.tabRow}>
           <button
-            type="button"
-            className={`tabButton ${mode === "search" ? "tabButtonActive" : ""}`}
-            onClick={() => setMode("search")}
-          >
+  type="button"
+  style={{
+    ...ui.addPage.tabButton,
+    ...(mode === "search" ? ui.addPage.tabButtonActive : {}),
+  }}
+  onClick={() => setMode("search")}
+>
             検索して追加
           </button>
 
           <button
-            type="button"
-            className={`tabButton ${mode === "manual" ? "tabButtonActive" : ""}`}
-            onClick={() => setMode("manual")}
-          >
+  type="button"
+  style={{
+    ...ui.addPage.tabButton,
+    ...(mode === "manual" ? ui.addPage.tabButtonActive : {}),
+  }}
+  onClick={() => setMode("manual")}
+>
             手動で追加
           </button>
         </div>
 
         {mode === "search" ? (
-          <div className="sectionCard">
+          <div className="sectionCard" style={ui.addPage.sectionCard}>
             <label style={ui.input.label}>タイトル・著者・ISBN で検索</label>
 
-<div
-  style={{
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    alignItems: "stretch",
-  }}
->
-  <div
-    style={{
-      position: "relative",
-      flex: 1,
-      minWidth: "220px",
-    }}
-  >
+<div style={ui.addPage.searchRow}>
+
+  <div style={ui.addPage.searchInputWrap}>
+
     <input
       type="text"
       value={searchQuery}
@@ -454,12 +449,9 @@ export default function AddBookPage() {
       }}
       placeholder="本を検索"
       style={{
-        ...ui.input.base,
-        width: "100%",
-        maxWidth: "100%",
-        boxSizing: "border-box",
-        paddingRight: searchQuery ? "40px" : "12px",
-      }}
+  ...ui.input.base,
+  padding: searchQuery ? "12px 40px 12px 12px" : "12px",
+}}
     />
 
     {searchQuery && (
@@ -471,19 +463,7 @@ export default function AddBookPage() {
           setSelectedBook(null);
         }}
         aria-label="検索文字を消す"
-        style={{
-          position: "absolute",
-          right: "10px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          border: "none",
-          background: "transparent",
-          color: ui.colors.subText,
-          cursor: "pointer",
-          padding: "4px",
-          fontSize: "18px",
-          lineHeight: 1,
-        }}
+        style={ui.addPage.clearButton}
       >
         ×
       </button>
@@ -501,7 +481,7 @@ export default function AddBookPage() {
 </div>
 
             {searchResults.length > 0 && (
-              <div className="resultList">
+              <div style={ui.addPage.resultList}>
                 {searchResults.map((result, index) => {
   const isSelected =
     selectedBook?.isbn === result.isbn &&
@@ -509,30 +489,22 @@ export default function AddBookPage() {
 
   return (
     <div
-      key={`${result.isbn || result.title}-${index}`}
-      className={`resultCard ${isSelected ? "resultCardSelected" : ""}`}
-      onClick={() => setSelectedBook(result)}
-    >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "72px 1fr",
-                        gap: "12px",
-                        alignItems: "start",
-                      }}
-                    >
+  key={`${result.isbn || result.title}-${index}`}
+  className="resultCard"
+  style={{
+    ...ui.addPage.resultCard,
+    ...(isSelected ? ui.addPage.resultCardSelected : {}),
+  }}
+  onClick={() => setSelectedBook(result)}
+>
+                    <div style={ui.addPage.resultCardInner}>
                       {normalizeThumbnailUrl(result.thumbnail) ? (
                         <img
                           src={normalizeThumbnailUrl(result.thumbnail)}
                           alt={result.title}
                           className="h-full w-full object-cover"
                           loading="lazy"
-                          style={{
-                            width: "72px",
-                            minWidth: "72px",
-                            borderRadius: "6px",
-                            display: "block",
-                          }}
+                          style={ui.addPage.resultCover}
                         />
                       ) : (
                         <div
@@ -572,46 +544,24 @@ export default function AddBookPage() {
             )}
 
             {selectedBook && (
-              <div className="selectedArea">
-                <p
-                  style={{
-                    margin: "0 0 12px 0",
-                    fontWeight: "bold",
-                    color: ui.colors.text,
-                  }}
-                >
+              <div style={ui.addPage.selectedArea}>
+                <p style={ui.addPage.selectedTitle}>
                   選択中の本
                 </p>
 
-                <div className="bookRow">
+                <div className="bookRow" style={ui.addPage.bookRow}>
                   <div>
                     {normalizeThumbnailUrl(selectedBook.thumbnail) ? (
                       <img
-                        src={normalizeThumbnailUrl(selectedBook.thumbnail)}
-                        alt={selectedBook.title}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        style={{
-                          width: "100%",
-                          maxWidth: "140px",
-                          borderRadius: "8px",
-                          display: "block",
-                        }}
-                      />
+  src={normalizeThumbnailUrl(selectedBook.thumbnail)}
+  alt={selectedBook.title}
+  className="h-full w-full object-cover"
+  loading="lazy"
+  style={ui.addPage.selectedCover}
+/>
                     ) : (
                       <div
-                        style={{
-                          width: "100%",
-                          maxWidth: "140px",
-                          aspectRatio: "2 / 3",
-                          borderRadius: "8px",
-                          background: ui.colors.inputDisabledBg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: ui.colors.placeholder,
-                          fontSize: "13px",
-                        }}
+                        style={ui.addPage.selectedCoverPlaceholder}
                       >
                         画像なし
                       </div>
@@ -646,15 +596,7 @@ export default function AddBookPage() {
                         ))}
                     </select>
 
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "12px",
-                        color: ui.colors.text,
-                      }}
-                    >
+                    <label style={ui.addPage.checkboxLabel}>
                       <input
                         type="checkbox"
                         checked={owned}
@@ -663,15 +605,7 @@ export default function AddBookPage() {
                       所持
                     </label>
 
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginTop: "4px",
-                        color: ui.colors.text,
-                      }}
-                    >
+                    <label style={ui.addPage.checkboxLabelNoMargin}>
                       <input
                         type="checkbox"
                         checked={isEbook}
@@ -680,7 +614,7 @@ export default function AddBookPage() {
                       電子書籍
                     </label>
 
-                    <div style={{ marginTop: "16px" }}>
+                    <div style={ui.addPage.actionArea}>
                       <button
                         type="button"
                         onClick={handleSave}
@@ -696,8 +630,8 @@ export default function AddBookPage() {
             )}
           </div>
         ) : (
-          <div className="sectionCard">
-            <div className="manualGrid">
+          <div className="sectionCard" style={ui.addPage.sectionCard}>
+            <div style={ui.addPage.manualGrid}>
               <div>
                 <label style={ui.input.label}>タイトル</label>
                 <input
@@ -793,7 +727,7 @@ export default function AddBookPage() {
                 </label>
               </div>
 
-              <div style={{ marginTop: "8px" }}>
+              <div style={ui.addPage.manualActionArea}>
                 <button
                   type="button"
                   onClick={handleManualSave}

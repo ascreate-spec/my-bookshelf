@@ -15,7 +15,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { ui, applyHoverStyle, clearHoverStyle, hoverStyles } from "@/lib/ui";
+import { ui } from "@/lib/ui";
 import { isAllowedEmail } from "../../lib/authGuard";
 import { signOut } from "firebase/auth";
 import PageHeader from "../../components/PageHeader";
@@ -314,7 +314,7 @@ export default function TagsPage() {
   if (!isAllowedEmail(user.email)) {
   return (
     <main style={ui.layout.page}>
-      <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+      <div style={ui.tagsPage.authBox}>
         <p>このアカウントでは利用できません</p>
 
         <button
@@ -336,108 +336,52 @@ export default function TagsPage() {
   }}
 >
       <style jsx>{`
-        .pageWrap {
-          max-width: 820px;
-          margin: 0 auto;
-        }
+  @media (max-width: 768px) {
+    .addArea {
+      flex-direction: column;
+      align-items: stretch;
+    }
 
-        .addArea {
-          margin-bottom: 20px;
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
 
-        .searchArea {
-          margin-bottom: 20px;
-        }
+    .actions {
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
 
-        .listBox {
-          border: 1px solid ${ui.colors.border};
-          border-radius: 12px;
-          overflow: hidden;
-          background: ${ui.colors.cardBg};
-        }
+    .editRow {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
 
-        .row {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          padding: 14px 16px;
-        }
+    .editActions {
+      width: auto;
+      flex-wrap: nowrap;
+    }
 
-        .row + .row {
-          border-top: 1px solid ${ui.colors.borderSoft};
-        }
-
-        .actions {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
-
-        .editRow {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          width: 100%;
-        }
-
-        .editActions {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        @media (max-width: 768px) {
-  .addArea {
-    flex-direction: column;
-    align-items: stretch;
+    .editActions button,
+    .actions button {
+      flex: 0 0 auto;
+    }
   }
+`}</style>
 
-  .row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
-  .actions {
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-  }
-
-  .editRow {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
-  .editActions {
-    width: auto;
-    flex-wrap: nowrap;
-  }
-
-  .editActions button,
-  .actions button {
-    flex: 0 0 auto;
-  }
-}
-      `}</style>
-
-      <div className="pageWrap">
+      <div style={ui.tagsPage.pageWrap}>
 
         <PageHeader title="タグ設定" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           タグの追加・編集・削除ができます
         </p>
 
-        <div className="searchArea">
+        <div style={ui.tagsPage.searchArea}>
           <label htmlFor="tagSearch" style={ui.input.label}>
             タグを検索
           </label>
 
-          <div style={{ position: "relative" }}>
+          <div style={ui.tagsPage.relativeField}>
             <input
               id="tagSearch"
               type="text"
@@ -455,19 +399,7 @@ export default function TagsPage() {
                 type="button"
                 onClick={() => setSearchText("")}
                 aria-label="検索文字をクリア"
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  color: ui.colors.subText,
-                  padding: "4px",
-                  lineHeight: 1,
-                }}
+                style={ui.tagsPage.clearButton}
               >
                 ×
               </button>
@@ -475,69 +407,52 @@ export default function TagsPage() {
           </div>
         </div>
 
-        <div className="addArea">
-          <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
-            <input
-              type="text"
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddTag();
-                }
-              }}
-              placeholder="新しいタグ名を入力"
-              style={{
-                ...ui.input.base,
-                flex: 1,
-                minWidth: 0,
-                paddingRight: "36px",
-              }}
-            />
+        <div className="addArea" style={ui.tagsPage.addArea}>
+  <div style={ui.tagsPage.addInputWrap}>
+    <input
+      value={newTagName}
+      onChange={(e) => setNewTagName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") handleAddTag();
+      }}
+      placeholder="追加するタグ名"
+      style={ui.input.base}
+    />
 
-            {newTagName && (
-              <button
-                type="button"
-                onClick={() => setNewTagName("")}
-                aria-label="タグ名をクリア"
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  color: ui.colors.subText,
-                  padding: "4px",
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
-            )}
-          </div>
+    {newTagName && (
+      <button
+        type="button"
+        onClick={() => setNewTagName("")}
+        aria-label="入力を消す"
+        style={ui.tagsPage.clearButton}
+      >
+        ×
+      </button>
+    )}
+  </div>
 
-          <button
-            onClick={handleAddTag}
-            disabled={addingTag}
-            style={{
-              ...ui.button.primary,
-              whiteSpace: "nowrap",
-              padding: "12px 16px",
-            }}
-          >
-            {addingTag ? "追加中..." : "タグを追加"}
-          </button>
-          <button
-  onClick={handleImportTagsFromBooks}
-  style={ui.button.secondary}
->
-  本データから取り込む
-</button>
-        </div>
+  <button
+    type="button"
+    onClick={handleAddTag}
+    style={{
+      ...ui.button.primary,
+      ...ui.tagsPage.smallActionButton,
+    }}
+  >
+    タグを追加
+  </button>
+
+  <button
+    type="button"
+    onClick={handleImportTagsFromBooks}
+    style={{
+      ...ui.button.secondary,
+      ...ui.tagsPage.importButton,
+    }}
+  >
+    本データから取り込む
+  </button>
+</div>
 
         {loading && <p style={ui.text.helper}>読み込み中...</p>}
 
@@ -546,20 +461,24 @@ export default function TagsPage() {
         )}
 
         {!loading && filteredTags.length > 0 && (
-          <div className="listBox">
+          <div style={ui.tagsPage.listBox}>
             {filteredTags.map((tag) => (
               <div
-                key={tag.id}
-                className="row"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = ui.colors.selectedBg;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "";
-                }}
-              >
+  key={tag.id}
+  className="row"
+  style={{
+    ...ui.tagsPage.row,
+    ...(filteredTags.indexOf(tag) > 0 ? ui.tagsPage.rowWithBorder : {}),
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = ui.colors.selectedBg;
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "";
+  }}
+>
                 {editingTagId === tag.id ? (
-                  <div className="editRow">
+                  <div className="editRow" style={ui.tagsPage.editRow}>
                     <div>
                       <input
                         type="text"
@@ -575,7 +494,7 @@ export default function TagsPage() {
                       />
                     </div>
 
-                    <div className="editActions">
+                    <div className="editActions" style={ui.tagsPage.editActions}>
                       <button
                         onClick={() => handleTagUpdate(tag)}
                         style={ui.button.smallPrimary}
@@ -593,24 +512,21 @@ export default function TagsPage() {
                   </div>
                 ) : (
                   <>
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                        color: ui.colors.text,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      #{tag.name}
-                    </div>
+                    <div style={ui.tagsPage.tagName}>
+  #{tag.name}
+</div>
 
-                    <div className="actions">
+                    <div className="actions" style={ui.tagsPage.actions}>
                       <button
-                        onClick={() => handleEditStart(tag)}
-                        style={ui.button.smallSecondary}
-                      >
-                        編集
-                      </button>
+  type="button"
+  onClick={() => handleEditStart(tag)}
+  style={{
+    ...ui.button.edit,
+    ...ui.tagsPage.smallActionButton,
+  }}
+>
+  編集
+</button>
 
                       <button
                         onClick={() => handleTagDelete(tag)}

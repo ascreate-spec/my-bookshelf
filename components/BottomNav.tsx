@@ -125,28 +125,13 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   const items = [
-  { href: "/", label: "本棚", icon: <BookshelfIcon />, isCenter: false },
-  { href: "/add", label: "追加", icon: <AddIcon />, isCenter: true },
-  { href: "/manage", label: "管理", icon: <ManageIcon />, isCenter: false },
-];
+    { href: "/", label: "本棚", icon: <BookshelfIcon />, isCenter: false },
+    { href: "/add", label: "追加", icon: <AddIcon />, isCenter: true },
+    { href: "/manage", label: "管理", icon: <ManageIcon />, isCenter: false },
+  ];
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: ui.colors.cardBg,
-        borderTop: `1px solid ${ui.colors.border}`,
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-        padding: "2px 0 calc(10px + env(safe-area-inset-bottom))",
-        zIndex: 1000,
-        boxShadow: "0 -4px 12px rgba(38, 51, 34, 0.06)",
-      }}
-    >
+    <nav style={ui.bottomNav.nav}>
       {items.map((item) => {
         const isActive = pathname === item.href;
 
@@ -157,30 +142,9 @@ export default function BottomNav() {
               href={item.href}
               aria-label={item.label}
               title={item.label}
-              style={{
-                flex: 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                textDecoration: "none",
-                color: ui.colors.primary,
-              }}
+              style={ui.bottomNav.centerLink}
             >
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "999px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: ui.colors.secondary, // 黄色の丸ボタン
-                  boxShadow: "0 6px 16px rgba(38, 51, 34, 0.16)",
-                  transform: "translateY(-22px)",
-                }}
-              >
-                {item.icon}
-              </div>
+              <div style={ui.bottomNav.centerButton}>{item.icon}</div>
             </Link>
           );
         }
@@ -192,14 +156,10 @@ export default function BottomNav() {
             aria-label={item.label}
             title={item.label}
             style={{
-              flex: 1,
-              textAlign: "center",
-              textDecoration: "none",
-              color: isActive ? ui.colors.primary : ui.colors.subText,
-              padding: "8px 0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              ...ui.bottomNav.link,
+              color: isActive
+                ? ui.bottomNav.activeColor
+                : ui.bottomNav.inactiveColor,
             }}
           >
             {item.icon}

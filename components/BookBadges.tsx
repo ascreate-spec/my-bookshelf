@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ui } from "../lib/ui";
 
 function OwnedOpenBookIcon() {
@@ -84,27 +85,11 @@ function Badge({
   children,
   title,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   title: string;
 }) {
   return (
-    <span
-      title={title}
-      aria-label={title}
-      style={{
-        width: "28px",
-        height: "28px",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "999px",
-        border: `1px solid ${ui.colors.primary}`,
-        background: ui.colors.cardBg,
-        color: ui.colors.primary,
-        lineHeight: 1,
-        flexShrink: 0,
-      }}
-    >
+    <span title={title} aria-label={title} style={ui.bookBadge.icon}>
       {children}
     </span>
   );
@@ -116,14 +101,7 @@ export default function BookBadges({ owned, isEbook }: BookBadgesProps) {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "6px",
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div style={ui.bookBadge.wrap}>
       {owned && (
         <Badge title="所持">
           <OwnedOpenBookIcon />

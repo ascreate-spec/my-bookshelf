@@ -510,8 +510,8 @@ const handleTagFilterKeyDown = (
   }
 
   .filterToggleButton {
-    display: none;
-  }
+  display: none !important;
+}
 
   @media (max-width: 768px) {
     .filtersGrid {
@@ -523,10 +523,9 @@ const handleTagFilterKeyDown = (
     }
 
     .filterToggleButton {
-      display: inline-block;
-      width: 100%;
-      margin-bottom: 16px;
-    }
+  display: inline-flex !important;
+  width: 100%;
+}
 
     .filtersGrid.filtersMobileHidden {
       display: none;
@@ -573,17 +572,7 @@ const handleTagFilterKeyDown = (
   {searchText && (
     <button
       onClick={() => setSearchText("")}
-      style={{
-        position: "absolute",
-        right: "8px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        fontSize: "16px",
-        color: ui.colors.subText,
-      }}
+      style={ui.homePage.clearButton}
     >
       ×
     </button>
@@ -595,12 +584,13 @@ const handleTagFilterKeyDown = (
   type="button"
   className="filterToggleButton"
   onClick={() => setShowFilters((prev) => !prev)}
-  style={ui.button.muted}
-  onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonMuted)}
-  onMouseLeave={clearHoverStyle}
+  style={{
+    ...ui.button.muted,
+    marginTop: "16px",
+  }}
 >
-          {showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
-        </button>
+  {showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
+</button>
 
         <div
           className={`filtersGrid ${
@@ -951,12 +941,7 @@ const handleTagFilterKeyDown = (
         return (
           <section
   key={`series-${item.seriesName}-${index}`}
-  style={{
-    gridColumn: "1 / -1",
-    marginBottom: "32px",
-    paddingBottom: "28px",
-    borderBottom: "1px solid #d6dde5",
-  }}
+  style={ui.homePage.sectionDivider}
 >
             <div
               style={{
@@ -998,12 +983,7 @@ const handleTagFilterKeyDown = (
                 >
                   {(book.owned || book.isEbook) && (
   <div
-    style={{
-      position: "absolute",
-      top: "12px",
-      right: "12px",
-      zIndex: 1,
-    }}
+    style={ui.homePage.bookCardBadgeArea}
   >
     <BookBadges owned={book.owned} isEbook={book.isEbook} />
   </div>
@@ -1029,16 +1009,13 @@ const handleTagFilterKeyDown = (
                     )}
 
                     <div
-  style={{
-    flex: 1,
-    minWidth: 0,
-    paddingRight:
-  book.owned && book.isEbook
-    ? "76px"
-    : book.owned || book.isEbook
-      ? "42px"
-      : 0,
-  }}
+  style={
+    book.owned && book.isEbook
+      ? ui.homePage.bookTextAreaWithTwoBadges
+      : book.owned || book.isEbook
+        ? ui.homePage.bookTextAreaWithOneBadge
+        : ui.homePage.bookTextArea
+  }
 >
                       <p style={ui.text.title}>{book.title}</p>
 
@@ -1098,12 +1075,7 @@ const handleTagFilterKeyDown = (
   >
     {(item.book.owned || item.book.isEbook) && (
       <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          right: "12px",
-          zIndex: 1,
-        }}
+        style={ui.homePage.bookCardBadgeArea}
       >
         <BookBadges
         owned={item.book.owned}
@@ -1132,16 +1104,13 @@ const handleTagFilterKeyDown = (
                 )}
 
                 <div
-  style={{
-    flex: 1,
-    minWidth: 0,
-    paddingRight:
-  item.book.owned && item.book.isEbook
-    ? "76px"
-    : item.book.owned || item.book.isEbook
-      ? "42px"
-      : 0,
-  }}
+  style={
+    item.book.owned && item.book.isEbook
+      ? ui.homePage.bookTextAreaWithTwoBadges
+      : item.book.owned || item.book.isEbook
+        ? ui.homePage.bookTextAreaWithOneBadge
+        : ui.homePage.bookTextArea
+  }
 >
                   <p style={ui.text.title}>{item.book.title}</p>
 
@@ -1212,12 +1181,7 @@ const handleTagFilterKeyDown = (
         >
           {(book.owned || book.isEbook) && (
   <div
-    style={{
-      position: "absolute",
-      top: "12px",
-      right: "12px",
-      zIndex: 1,
-    }}
+    style={ui.homePage.bookCardBadgeArea}
   >
     <BookBadges owned={book.owned} isEbook={book.isEbook} />
   </div>

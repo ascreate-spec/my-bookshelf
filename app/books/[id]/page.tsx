@@ -464,162 +464,61 @@ export default function BookEditPage() {
       }}
     >
       <style jsx>{`
-        .pageWrap {
-          max-width: 760px;
-          margin: 0 auto;
-        }
+  @media (max-width: 768px) {
+    .formCard {
+      padding: 16px;
+    }
 
-        .formCard {
-          background: ${ui.colors.cardBg};
-          border: 1px solid ${ui.colors.border};
-          border-radius: 14px;
-          padding: 20px;
-        }
+    .topArea {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
 
-        .topArea {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 20px;
-          align-items: start;
-          margin-bottom: 24px;
-        }
+    .fieldGrid {
+      grid-template-columns: 1fr;
+    }
 
-        .tabRow {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 20px;
-        }
+    .actionRow button {
+      flex: 1;
+    }
+  }
+`}</style>
 
-        .tabButton {
-          border: 1px solid ${ui.colors.border};
-          background: ${ui.colors.cardBg};
-          color: ${ui.colors.text};
-          border-radius: 999px;
-          padding: 10px 16px;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .tabButtonActive {
-          background: ${ui.colors.text};
-          color: ${ui.colors.cardBg};
-          border-color: ${ui.colors.text};
-        }
-
-        .fieldGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px 16px;
-        }
-
-        .fieldFull {
-          grid-column: 1 / -1;
-        }
-
-        .actionRow {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-          .formCard {
-            padding: 16px;
-          }
-
-          .topArea {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-
-          .fieldGrid {
-            grid-template-columns: 1fr;
-          }
-
-          .actionRow button {
-            flex: 1;
-          }
-        }
-      `}</style>
-
-      <div className="pageWrap">
+      <div style={ui.bookEditPage.pageWrap}>
 
         <PageHeader title="本を編集" backHref="/" />
         <p style={ui.layout.sectionDescription}>
           この画面で本の編集と削除ができます
         </p>
 
-        <div className="formCard">
-          <div className="topArea">
+        <div className="formCard" style={ui.bookEditPage.formCard}>
+          <div className="topArea" style={ui.bookEditPage.topArea}>
             <div>
               {book?.image ? (
                 <img
-                  src={book.image}
-                  alt="表紙"
-                  style={{
-                    width: "100%",
-                    maxWidth: "120px",
-                    borderRadius: "8px",
-                    display: "block",
-                  }}
-                />
+  src={book.image}
+  alt="表紙"
+  style={ui.bookEditPage.coverImage}
+/>
               ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    maxWidth: "120px",
-                    aspectRatio: "2 / 3",
-                    background: ui.colors.inputDisabledBg,
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: ui.colors.placeholder,
-                    fontSize: "13px",
-                  }}
-                >
-                  画像なし
-                </div>
+                <div style={ui.bookEditPage.coverPlaceholder}>
+  画像なし
+</div>
               )}
             </div>
 
             <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontWeight: "bold",
-                  fontSize: "22px",
-                  lineHeight: 1.5,
-                  color: ui.colors.text,
-                  wordBreak: "break-word",
-                }}
-              >
+              <p style={ui.bookEditPage.previewTitle}>
                 {editForm.title || "タイトルなし"}
               </p>
 
               {editForm.author && (
-                <p
-                  style={{
-                    margin: "8px 0 0 0",
-                    color: ui.colors.subText,
-                    fontSize: "14px",
-                    wordBreak: "break-word",
-                  }}
-                >
+                <p style={ui.bookEditPage.previewAuthor}>
                   {editForm.author}
                 </p>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "6px",
-                  flexWrap: "wrap",
-                  marginTop: "12px",
-                }}
-              >
+              <div style={ui.bookEditPage.badgeRow}>
                 <span style={ui.badge.shelf}>
                   {normalizeShelfName(editForm.shelf)}
                 </span>
@@ -627,46 +526,39 @@ export default function BookEditPage() {
                 {editForm.owned && <span style={ui.badge.owned}>所持</span>}
 
                 {editForm.isEbook && (
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      padding: "4px 8px",
-                      borderRadius: "999px",
-                      background: ui.colors.hoverBg,
-                      color: ui.colors.text,
-                      border: `1px solid ${ui.colors.border}`,
-                    }}
-                  >
-                    電子書籍
-                  </span>
+                  <span style={ui.bookEditPage.ebookBadge}>
+  電子書籍
+</span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="tabRow">
+          <div style={ui.bookEditPage.tabRow}>
   <button
-    type="button"
-    className={`tabButton ${
-      activeTab === "basic" ? "tabButtonActive" : ""
-    }`}
-    onClick={() => setActiveTab("basic")}
-  >
-    基本情報
-  </button>
+  type="button"
+  style={{
+    ...ui.bookEditPage.tabButton,
+    ...(activeTab === "basic" ? ui.bookEditPage.tabButtonActive : {}),
+  }}
+  onClick={() => setActiveTab("basic")}
+>
+  基本情報
+</button>
 
   <button
-    type="button"
-    className={`tabButton ${
-      activeTab === "settings" ? "tabButtonActive" : ""
-    }`}
-    onClick={() => setActiveTab("settings")}
-  >
-    ステータス・管理
-  </button>
+  type="button"
+  style={{
+    ...ui.bookEditPage.tabButton,
+    ...(activeTab === "settings" ? ui.bookEditPage.tabButtonActive : {}),
+  }}
+  onClick={() => setActiveTab("settings")}
+>
+  ステータス・管理
+</button>
 </div>
 
-          <div className="fieldGrid">
+          <div className="fieldGrid" style={ui.bookEditPage.fieldGrid}>
             {activeTab === "settings" ? (
               <>
                 <div>
@@ -692,19 +584,15 @@ export default function BookEditPage() {
   }
   disabled={editForm.status !== "読了"}
   style={{
-    ...ui.input.base,
-    width: "100%",
-    maxWidth: "100%",
-    minWidth: 0,
-    boxSizing: "border-box",
-    background:
-      editForm.status !== "読了"
-        ? ui.colors.inputDisabledBg
-        : ui.colors.cardBg,
-  }}
+  ...ui.input.base,
+  ...ui.bookEditPage.dateInput,
+  ...(editForm.status !== "読了"
+    ? ui.bookEditPage.dateInputDisabled
+    : ui.bookEditPage.dateInputEnabled),
+}}
 />
 
-                  <div style={{ marginTop: "8px" }}>
+                  <div style={ui.bookEditPage.smallButtonArea}>
                     <button
                       type="button"
                       onClick={() => handleEditChange("finishedDate", "")}
@@ -717,20 +605,7 @@ export default function BookEditPage() {
 
                 <div>
                   <p style={ui.input.label}>所持</p>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      border: `1px solid ${ui.colors.inputBorder}`,
-                      borderRadius: "8px",
-                      background: ui.colors.cardBg,
-                      fontSize: "16px",
-                      color: ui.colors.text,
-                      boxSizing: "border-box",
-                    }}
-                  >
+                  <label style={ui.bookEditPage.checkboxLabel}>
                     <input
                       type="checkbox"
                       checked={editForm.owned}
@@ -747,20 +622,7 @@ export default function BookEditPage() {
 
                 <div>
                   <p style={ui.input.label}>電子書籍</p>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      border: `1px solid ${ui.colors.inputBorder}`,
-                      borderRadius: "8px",
-                      background: ui.colors.cardBg,
-                      fontSize: "16px",
-                      color: ui.colors.text,
-                      boxSizing: "border-box",
-                    }}
-                  >
+                  <label style={ui.bookEditPage.checkboxLabel}>
                     <input
                       type="checkbox"
                       checked={editForm.isEbook}
@@ -791,48 +653,22 @@ export default function BookEditPage() {
                   </select>
                 </div>
 
-                <div className="fieldFull" style={{ position: "relative" }}>
+                <div className="fieldFull" style={ui.bookEditPage.tagArea}>
                   <p style={ui.input.label}>タグ</p>
 
                   <div
-                    style={{
-                      ...ui.input.base,
-                      minHeight: "48px",
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "8px",
-                      alignItems: "center",
-                      padding: "8px 10px",
-                    }}
-                  >
+  style={{
+    ...ui.input.base,
+    ...ui.bookEditPage.tagInputBox,
+  }}
+>
                     {editForm.tags.map((tag, index) => (
-                      <span
-                        key={`${tag}-${index}`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          background: ui.colors.tagBg,
-                          color: ui.colors.tagText,
-                          padding: "6px 10px",
-                          borderRadius: "999px",
-                          fontSize: "13px",
-                          lineHeight: 1,
-                        }}
-                      >
+                      <span style={ui.bookEditPage.tagChip}>
                         #{tag}
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            color: ui.colors.tagText,
-                            fontSize: "14px",
-                            padding: 0,
-                            lineHeight: 1,
-                          }}
+                          style={ui.bookEditPage.tagRemoveButton}
                           aria-label={`${tag} を削除`}
                         >
                           ×
@@ -855,62 +691,23 @@ export default function BookEditPage() {
                         }, 150);
                       }}
                       placeholder="タグを入力して Enter で追加"
-                      style={{
-                        border: "none",
-                        outline: "none",
-                        background: "transparent",
-                        flex: 1,
-                        minWidth: "140px",
-                        fontSize: "14px",
-                        color: ui.colors.text,
-                      }}
+                      style={ui.bookEditPage.tagInnerInput}
                     />
                   </div>
 
-                  <p
-                    style={{
-                      margin: "6px 0 0 0",
-                      color: ui.colors.subText,
-                      fontSize: "12px",
-                    }}
-                  >
+                  <p style={ui.bookEditPage.helperSmall}>
                     Enterで追加。×ですぐ削除できます
                   </p>
 
                   {showTagSuggestions && tagSuggestions.length > 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "86px",
-                        left: 0,
-                        right: 0,
-                        background: ui.colors.cardBg,
-                        border: `1px solid ${ui.colors.border}`,
-                        borderRadius: "8px",
-                        boxShadow: `0 4px 12px ${ui.colors.shadow}`,
-                        maxHeight: "180px",
-                        overflowY: "auto",
-                        zIndex: 10,
-                      }}
-                    >
+                    <div style={ui.bookEditPage.suggestionList}>
                       {tagSuggestions.slice(0, 8).map((tag) => (
                         <button
                           key={tag}
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => handleTagSuggestionClick(tag)}
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "10px 12px",
-                            background: ui.colors.cardBg,
-                            border: "none",
-                            borderBottom: `1px solid ${ui.colors.borderSoft}`,
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            color: ui.colors.text,
-                          }}
+                          style={ui.bookEditPage.suggestionButton}
                         >
                           #{tag}
                         </button>
@@ -926,10 +723,9 @@ export default function BookEditPage() {
                     onChange={(e) => handleEditChange("memo", e.target.value)}
                     rows={5}
                     style={{
-                      ...ui.input.textarea,
-                      minHeight: "120px",
-                      resize: "vertical",
-                    }}
+  ...ui.input.textarea,
+  ...ui.bookEditPage.memoTextarea,
+}}
                   />
                 </div>
               </>
@@ -1005,14 +801,7 @@ export default function BookEditPage() {
           </div>
 
           {book?.createdAt && (
-            <p
-              style={{
-                margin: "8px 0 0 0",
-                color: ui.colors.subText,
-                fontSize: "12px",
-                lineHeight: 1.5,
-              }}
-            >
+            <p style={ui.bookEditPage.dateMeta}>
               登録日：
               {book.createdAt?.toDate
                 ? book.createdAt.toDate().toLocaleDateString("ja-JP")
@@ -1021,14 +810,7 @@ export default function BookEditPage() {
           )}
 
           {book?.updatedAt && (
-            <p
-              style={{
-                margin: "4px 0 0 0",
-                color: ui.colors.subText,
-                fontSize: "12px",
-                lineHeight: 1.5,
-              }}
-            >
+            <p style={ui.bookEditPage.updatedMeta}>
               更新日：
               {book.updatedAt?.toDate
                 ? book.updatedAt.toDate().toLocaleDateString("ja-JP")
@@ -1036,7 +818,7 @@ export default function BookEditPage() {
             </p>
           )}
 
-          <div className="actionRow">
+          <div className="actionRow" style={ui.bookEditPage.actionRow}>
             <button
               onClick={handleSave}
               disabled={saving}

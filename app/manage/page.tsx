@@ -41,7 +41,7 @@ export default function ManagePage() {
   if (!user) {
     return (
       <main style={ui.layout.page}>
-        <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <div style={ui.managePage.authBox}>
           <p style={ui.text.helper}>ログインしてください</p>
         </div>
       </main>
@@ -56,14 +56,17 @@ export default function ManagePage() {
           paddingBottom: "96px",
         }}
       >
-        <div style={{ maxWidth: "400px", margin: "100px auto" }}>
+        <div style={ui.managePage.authBox}>
           <p>このアカウントでは利用できません</p>
 
           <button
-            style={ui.button.muted}
-            className="manageMenuButton"
-            onClick={handleLogout}
-          >
+  onClick={handleLogout}
+  style={{
+    ...ui.button.muted,
+    ...ui.managePage.menuItem,
+  }}
+  className="manageMenuButton"
+>
             ログアウト
           </button>
         </div>
@@ -89,48 +92,56 @@ export default function ManagePage() {
         paddingBottom: "96px",
       }}
     >
-      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
+      <div style={ui.managePage.pageWrap}>
         <PageHeader title="管理" />
 
-        <p style={{ ...ui.text.helper, marginBottom: "20px" }}>
+        <p style={{ ...ui.text.helper, ...ui.managePage.description }}>
           各種設定・データ管理はこちら
         </p>
 
-        <div
-          style={{
-            display: "grid",
-            gap: "12px",
-          }}
-        >
+        <div style={ui.managePage.menuGrid}>
+
           <Link
-            href="/tags"
-            style={ui.button.secondary}
-            className="manageMenuLink"
-          >
+  href="/tags"
+  style={{
+    ...ui.button.secondary,
+    ...ui.managePage.menuItem,
+  }}
+  className="manageMenuLink"
+>
             タグ設定
           </Link>
 
           <Link
             href="/shelves"
-            style={ui.button.secondary}
-            className="manageMenuLink"
-          >
+            style={{
+    ...ui.button.secondary,
+    ...ui.managePage.menuItem,
+  }}
+  className="manageMenuLink"
+>
             棚設定
           </Link>
 
           <Link
             href="/data"
-            style={ui.button.secondary}
-            className="manageMenuLink"
-          >
+            style={{
+    ...ui.button.secondary,
+    ...ui.managePage.menuItem,
+  }}
+  className="manageMenuLink"
+>
             データ管理
           </Link>
 
           <button
-            onClick={handleLogout}
-            style={ui.button.muted}
-            className="manageMenuButton"
-          >
+  onClick={handleLogout}
+  style={{
+    ...ui.button.muted,
+    ...ui.managePage.menuItem,
+  }}
+  className="manageMenuButton"
+>
             ログアウト
           </button>
         </div>
@@ -139,17 +150,12 @@ export default function ManagePage() {
       <BottomNav />
 
       <style jsx>{`
-        .manageMenuLink,
-        .manageMenuButton {
-          transition: filter 0.15s ease, transform 0.15s ease;
-        }
-
-        .manageMenuLink:hover,
-        .manageMenuButton:hover {
-          filter: brightness(0.97);
-          transform: translateY(-1px);
-        }
-      `}</style>
+  .manageMenuLink:hover,
+  .manageMenuButton:hover {
+    filter: brightness(0.97);
+    transform: translateY(-1px);
+  }
+`}</style>
     </main>
   );
 }
