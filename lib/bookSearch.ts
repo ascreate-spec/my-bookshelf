@@ -67,22 +67,15 @@ export async function searchGoogleBooks(
   const isIsbnLike = /^[0-9]{10,13}$/.test(normalized);
 
   const queries = isIsbnLike
-    ? [`isbn:${normalized}`, normalized]
-    : [
-        trimmed,
-        `"${trimmed}"`,
-        `intitle:${trimmed}`,
-        `inauthor:${trimmed}`,
-      ];
+  ? [`isbn:${normalized}`]
+  : [trimmed];
 
   const allItems: BookSearchItem[] = [];
   let apiFailedCount = 0;
 
   for (const q of queries) {
     try {
-      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
-        q
-      )}&maxResults=20&printType=books`;
+      const url = `/api/books/search?q=${encodeURIComponent(q)}`;
 
       console.log("Google Books query:", q);
       console.log("Google Books url:", url);
@@ -90,10 +83,19 @@ export async function searchGoogleBooks(
       const res = await fetch(url, { cache: "no-store" });
 
       if (!res.ok) {
-        apiFailedCount += 1;
-        console.warn("Google Books API failed:", q, res.status, res.statusText);
-        continue;
-      }
+  apiFailedCount += 1;
+
+  if (res.status === 429) {
+    console.warn(
+      "Google Books APIの利用回数が多すぎます。少し時間をおいて再検索してください。",
+      q
+    );
+  } else {
+    console.warn("Google Books API failed:", q, res.status, res.statusText);
+  }
+
+  continue;
+}
 
       const data = await res.json();
 
@@ -110,8 +112,9 @@ export async function searchGoogleBooks(
   }
 
   if (allItems.length === 0 && apiFailedCount === queries.length) {
-    throw new Error("Google Books APIから取得できませんでした");
-  }
+  console.warn("Google Books APIから取得できませんでした。空の検索結果として扱います。");
+  return [];
+}
 
   const uniqueMap = new Map<string, BookSearchItem>();
 

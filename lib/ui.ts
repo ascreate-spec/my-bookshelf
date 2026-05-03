@@ -35,8 +35,8 @@ export const ui = {
   inputBorder: "#D8DEE5",
   inputDisabledBg: "#F2F4F6",
 
-  shelfBg: "#EEF8F7",
-  shelfText: "#2F6F6A",
+  shelfBg: "#F6E7A6",
+  shelfText: "#5A4A1F",
 
   tagBg: "#EEF8F7",
   tagText: "#2F6F6A",
@@ -1138,14 +1138,14 @@ shelvesPage: {
 
   badge: {
   shelf: {
-    fontWeight: "bold",
-    color: "#2F6F6A",
-    background: "#EEF8F7",
-    padding: "4px 8px",
-    borderRadius: "999px",
-    display: "inline-block",
-    fontSize: "12px",
-  } as CSSProperties,
+  fontWeight: "bold",
+  color: "#5A4A1F",
+  background: "#F6E7A6",
+  padding: "4px 8px",
+  borderRadius: "999px",
+  display: "inline-block",
+  fontSize: "12px",
+} as CSSProperties,
 
   owned: {
     fontWeight: "bold",

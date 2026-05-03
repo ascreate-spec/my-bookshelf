@@ -375,94 +375,115 @@ setShelves(list);
       }}
     >
       <style jsx>{`
-        .pageWrap {
-          max-width: 820px;
-          margin: 0 auto;
-        }
+  .pageWrap {
+    max-width: 820px;
+    margin: 0 auto;
+  }
 
-        .addArea {
-          margin-bottom: 24px;
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
+  .addArea {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 20px;
+  }
 
-        .listBox {
-          border: 1px solid ${ui.colors.border};
-          border-radius: 12px;
-          overflow: hidden;
-          background: ${ui.colors.cardBg};
-        }
+  .listBox {
+    border: 1px solid ${ui.colors.border};
+    border-radius: 12px;
+    overflow: hidden;
+    background: ${ui.colors.cardBg};
+  }
 
-        .row {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          padding: 14px 16px;
-        }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+  }
 
-        .row + .row {
-          border-top: 1px solid ${ui.colors.borderSoft};
-        }
+  .row + .row {
+    border-top: 1px solid ${ui.colors.borderSoft};
+  }
 
-        .actions {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
+  .actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 
-        .editRow {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          width: 100%;
-        }
+  .editRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+  }
 
-        .editActions {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
+  .editInputWrap {
+    min-width: 0;
+    width: 100%;
+  }
 
-        @media (max-width: 768px) {
-          .addArea {
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .editActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-          .row {
-            grid-template-columns: 1fr;
-            align-items: start;
-          }
+  @media (max-width: 768px) {
+    .addArea {
+      display: grid !important;
+      gap: 10px !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin-bottom: 20px !important;
+    }
 
-          .actions {
-            justify-content: flex-start;
-          }
+    .addArea > * {
+      width: 100% !important;
+    }
 
-          .editRow {
-            grid-template-columns: 1fr;
-          }
+    .row {
+      grid-template-columns: 1fr;
+      align-items: start;
+      gap: 10px;
+    }
 
-          .editActions {
-            width: 100%;
-          }
+    .actions {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      width: 100%;
+    }
 
-          .editActions button,
-          .actions button {
-            flex: 1;
-          }
-        }
-      `}</style>
+    .actions button {
+      flex: 1 1 calc(50% - 6px);
+    }
+
+    .editRow {
+      grid-template-columns: 1fr !important;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .editActions {
+      width: 100%;
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
+
+    .editActions button {
+      flex: 1;
+    }
+  }
+`}</style>
     <div className="pageWrap">
          <PageHeader title="棚設定" backHref="/" />
-        <p style={ui.layout.sectionDescription}>
-          棚の追加・編集・削除・並び替えができます
-        </p>
 
-<div className="addArea" style={ui.shelvesPage.addArea}>
+<div className="addArea">
   <div style={ui.shelvesPage.addInputWrap}>
     <input
       type="text"
@@ -473,7 +494,8 @@ setShelves(list);
           handleAddShelf();
         }
       }}
-      placeholder="追加する棚名"
+      placeholder="追加する棚"
+      autoComplete="off"
       style={{
         ...ui.input.base,
         width: "100%",
@@ -499,9 +521,10 @@ setShelves(list);
     onClick={handleAddShelf}
     disabled={addingShelf}
     style={{
-      ...ui.button.primary,
-      ...ui.shelvesPage.addButtonInline,
-    }}
+  ...ui.button.primary,
+  width: "100%",
+  justifyContent: "center",
+}}
   >
     {addingShelf ? "追加中..." : "棚を追加"}
   </button>
@@ -534,14 +557,19 @@ setShelves(list);
     >
       {editingShelfId === shelf.id ? (
         <div className="editRow">
-          <div>
-            <input
-              type="text"
-              value={editingShelfName}
-              onChange={(e) => setEditingShelfName(e.target.value)}
-              style={ui.input.base}
-            />
-          </div>
+          <div className="editInputWrap">
+  <input
+    type="text"
+    value={editingShelfName}
+    onChange={(e) => setEditingShelfName(e.target.value)}
+    autoComplete="off"
+    style={{
+      ...ui.input.base,
+      width: "100%",
+      boxSizing: "border-box",
+    }}
+  />
+</div>
 
           <div className="editActions">
             <button

@@ -90,9 +90,11 @@ export default function Home() {
   const [showTagFilterSuggestions, setShowTagFilterSuggestions] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [useSeriesView, setUseSeriesView] = useState(false);
+  const statusTabs = ["すべて", "未読", "読書中", "読了"];
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -410,11 +412,11 @@ const handleTagFilterKeyDown = (
   if (authLoading) {
   return (
     <main
-      style={{
-        ...ui.layout.page,
-        paddingBottom: "96px",
-      }}
-    >
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       <div style={{ maxWidth: "400px", margin: "100px auto" }}>
         <p style={ui.text.helper}>認証確認中...</p>
       </div>
@@ -425,11 +427,11 @@ const handleTagFilterKeyDown = (
   if (!user) {
     return (
       <main
-        style={{
-          ...ui.layout.page,
-          paddingBottom: "96px",
-        }}
-      >
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
         <div style={{ maxWidth: "400px", margin: "100px auto" }}>
           <PageHeader title="My Bookshelf" />
 
@@ -448,11 +450,11 @@ const handleTagFilterKeyDown = (
   if (!isAllowedEmail(user.email)) {
     return (
       <main
-        style={{
-          ...ui.layout.page,
-          paddingBottom: "96px",
-        }}
-      >
+  style={{
+    ...ui.layout.page,
+    paddingBottom: "96px",
+  }}
+>
       
         <div style={{ maxWidth: "400px", margin: "100px auto" }}>
           <p>このアカウントでは利用できません</p>
@@ -476,11 +478,12 @@ const handleTagFilterKeyDown = (
   .pageWrap {
     max-width: 820px;
     margin: 0 auto;
+    padding-top: 0;
   }
 
   .pageHeader {
-    margin-bottom: 16px;
-  }
+  margin-bottom: 4px;
+}
 
   .filtersGrid {
     display: grid;
@@ -509,8 +512,101 @@ const handleTagFilterKeyDown = (
     width: 100%;
   }
 
-  .filterToggleButton {
-  display: none !important;
+  .statusAndToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.statusTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.statusTab {
+  border: 1px solid ${ui.colors.border};
+  background: ${ui.colors.cardBg};
+  color: ${ui.colors.subText};
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.statusTabActive {
+  border-color: ${ui.colors.primary};
+  background: ${ui.colors.primary};
+  color: ${ui.colors.primaryText};
+}
+
+.toolbarRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  border: 1px solid ${ui.colors.border};
+  border-radius: 999px;
+  background: ${ui.colors.cardBg};
+  color: ${ui.colors.text};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.iconButtonActive {
+  border-color: ${ui.colors.primary};
+  background: ${ui.colors.primary};
+  color: ${ui.colors.primaryText};
+}
+
+.sortMenuWrap {
+  position: relative;
+}
+
+.sortMenu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 180px;
+  background: ${ui.colors.cardBg};
+  border: 1px solid ${ui.colors.border};
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(38, 51, 34, 0.12);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.sortMenu button {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: ${ui.colors.text};
+  font-size: 14px;
+}
+
+.sortMenu button:hover {
+  background: ${ui.colors.hoverBg};
 }
 
   @media (max-width: 768px) {
@@ -522,11 +618,6 @@ const handleTagFilterKeyDown = (
       grid-template-columns: 1fr;
     }
 
-    .filterToggleButton {
-  display: inline-flex !important;
-  width: 100%;
-}
-
     .filtersGrid.filtersMobileHidden {
       display: none;
     }
@@ -534,19 +625,41 @@ const handleTagFilterKeyDown = (
     .filtersGrid.filtersMobileVisible {
       display: grid;
     }
+    
+    .statusAndToolbar {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.statusTabs {
+  gap: 6px;
+}
+
+.statusTab {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
   }
 `}</style>
 
       <div className="pageWrap">
-        <div className="pageHeader">
-          <PageHeader title="My Bookshelf" />
-        </div>
+<div className="pageHeader">
+  <PageHeader title="My Bookshelf" />
+</div>
 
-<div style={{ marginBottom: "24px", width: "100%" }}>
-  <label htmlFor="searchText" style={ui.input.label}>
-    本を検索
-  </label>
-
+<div
+  style={{
+    marginTop: "-16px",
+    marginBottom: "10px",
+    width: "100%",
+  }}
+>
   <div style={{ position: "relative", width: "100%" }}>
     <input
       id="searchText"
@@ -580,17 +693,99 @@ const handleTagFilterKeyDown = (
 </div>
 </div>
 
-        <button
-  type="button"
-  className="filterToggleButton"
-  onClick={() => setShowFilters((prev) => !prev)}
-  style={{
-    ...ui.button.muted,
-    marginTop: "16px",
-  }}
->
-  {showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
-</button>
+<div className="statusAndToolbar">
+  <div className="statusTabs">
+    {statusTabs.map((status) => (
+      <button
+        key={status}
+        type="button"
+        className={`statusTab ${
+          selectedStatus === status ? "statusTabActive" : ""
+        }`}
+        onClick={() => setSelectedStatus(status)}
+      >
+        {status}
+      </button>
+    ))}
+  </div>
+
+  <div className="toolbarRow">
+    <button
+      type="button"
+      className={`iconButton ${showFilters ? "iconButtonActive" : ""}`}
+      onClick={() => setShowFilters((prev) => !prev)}
+      aria-label={showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
+      title={showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
+    >
+      ⛃
+    </button>
+
+    <div className="sortMenuWrap">
+      <button
+        type="button"
+        className={`iconButton ${
+          sortOrder !== "newest" ? "iconButtonActive" : ""
+        }`}
+        onClick={() => setShowSortMenu((prev) => !prev)}
+        aria-label="並び替え"
+        title="並び替え"
+      >
+        ↕
+      </button>
+
+      {showSortMenu && (
+        <div className="sortMenu">
+          <button
+            type="button"
+            onClick={() => {
+              setSortOrder("newest");
+              setShowSortMenu(false);
+            }}
+          >
+            新しい順
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSortOrder("oldest");
+              setShowSortMenu(false);
+            }}
+          >
+            古い順
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSortOrder("title");
+              setShowSortMenu(false);
+            }}
+          >
+            タイトル順
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSortOrder("finishedDate");
+              setShowSortMenu(false);
+            }}
+          >
+            読了日順
+          </button>
+        </div>
+      )}
+    </div>
+
+    <button
+      type="button"
+      className={`iconButton ${useSeriesView ? "iconButtonActive" : ""}`}
+      onClick={() => setUseSeriesView((prev) => !prev)}
+      aria-label="シリーズ表示"
+      title="シリーズ表示"
+    >
+      ⧉
+    </button>
+  </div>
+</div>
 
         <div
           className={`filtersGrid ${
@@ -614,40 +809,38 @@ const handleTagFilterKeyDown = (
     position: "relative",
   }}
 >
-  {selectedTags.map((tag, index) => (
-    <span
-      key={`${tag}-${index}`}
+ {selectedTags.map((tag, index) => (
+  <span
+    key={`${tag}-${index}`}
+    style={{
+      ...ui.badge.shelf,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "6px 10px",
+      fontSize: "13px",
+      lineHeight: 1,
+    }}
+  >
+    #{tag}
+    <button
+      type="button"
+      onClick={() => handleRemoveFilterTag(tag)}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-        background: ui.colors.tagBg,
-        color: ui.colors.tagText,
-        padding: "6px 10px",
-        borderRadius: "999px",
-        fontSize: "13px",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        color: ui.badge.shelf.color,
+        fontSize: "14px",
+        padding: 0,
         lineHeight: 1,
       }}
+      aria-label={`${tag} を削除`}
     >
-      #{tag}
-      <button
-        type="button"
-        onClick={() => handleRemoveFilterTag(tag)}
-        style={{
-          border: "none",
-          background: "transparent",
-          cursor: "pointer",
-          color: ui.colors.tagText,
-          fontSize: "14px",
-          padding: 0,
-          lineHeight: 1,
-        }}
-        aria-label={`${tag} を削除`}
-      >
-        ×
-      </button>
-    </span>
-  ))}
+      ×
+    </button>
+  </span>
+))}
 
   <input
   id="tagFilter"
@@ -765,24 +958,6 @@ const handleTagFilterKeyDown = (
           </div>
 
           <div className="filterBox">
-            <label htmlFor="statusFilter" style={ui.input.label}>
-              ステータスで絞り込み
-            </label>
-
-            <select
-              id="statusFilter"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              style={ui.input.base}
-            >
-              <option value="すべて">すべて</option>
-              <option value="未読">未読</option>
-              <option value="読書中">読書中</option>
-              <option value="読了">読了</option>
-            </select>
-          </div>
-
-          <div className="filterBox">
             <label htmlFor="ownedFilter" style={ui.input.label}>
               所持で絞り込み
             </label>
@@ -798,54 +973,9 @@ const handleTagFilterKeyDown = (
               <option value="未所持">未所持</option>
             </select>
           </div>
-
-          <div className="filterBox">
-            <label htmlFor="sortOrder" style={ui.input.label}>
-              並び替え
-            </label>
-
-            <select
-              id="sortOrder"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              style={ui.input.base}
-            >
-              <option value="newest">新しい順</option>
-              <option value="oldest">古い順</option>
-              <option value="title">タイトル順</option>
-              <option value="finishedDate">読了日順</option>
-            </select>
-          </div>
         </div>
 
-        <div className="filterBox">
-  <label
-    style={{
-      ...ui.input.label,
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      cursor: "pointer",
-    }}
-  >
-    <input
-      type="checkbox"
-      checked={useSeriesView}
-      onChange={(e) => setUseSeriesView(e.target.checked)}
-    />
-    シリーズ表示
-  </label>
-</div>
-
         <div style={{ marginTop: "24px" }}>
-          <h2
-            style={{
-              marginBottom: "12px",
-              color: ui.colors.text,
-            }}
-          >
-            保存した本
-          </h2>
 
           {(selectedShelf ||
   searchText ||

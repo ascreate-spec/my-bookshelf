@@ -464,22 +464,32 @@ export default function BookEditPage() {
       }}
     >
       <style jsx>{`
+  .fieldFull {
+    grid-column: 1 / -1;
+  }
+
   @media (max-width: 768px) {
     .formCard {
       padding: 16px;
     }
 
     .topArea {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
       gap: 16px;
     }
 
     .fieldGrid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
+      gap: 16px;
+    }
+
+    .actionRow {
+      flex-direction: column;
     }
 
     .actionRow button {
-      flex: 1;
+      width: 100%;
+      flex: none;
     }
   }
 `}</style>
@@ -487,9 +497,6 @@ export default function BookEditPage() {
       <div style={ui.bookEditPage.pageWrap}>
 
         <PageHeader title="本を編集" backHref="/" />
-        <p style={ui.layout.sectionDescription}>
-          この画面で本の編集と削除ができます
-        </p>
 
         <div className="formCard" style={ui.bookEditPage.formCard}>
           <div className="topArea" style={ui.bookEditPage.topArea}>
@@ -561,9 +568,9 @@ export default function BookEditPage() {
           <div className="fieldGrid" style={ui.bookEditPage.fieldGrid}>
             {activeTab === "settings" ? (
               <>
-                <div>
-                  <p style={ui.input.label}>ステータス</p>
-                  <select
+                <div className="fieldFull">
+  <p style={ui.input.label}>ステータス</p>
+  <select
                     value={editForm.status}
                     onChange={(e) => handleStatusChange(e.target.value)}
                     style={ui.input.base}
@@ -574,9 +581,9 @@ export default function BookEditPage() {
                   </select>
                 </div>
 
-                <div>
-                  <p style={ui.input.label}>読了日</p>
-                  <input
+                <div className="fieldFull">
+  <p style={ui.input.label}>読了日</p>
+  <input
   type="date"
   value={editForm.finishedDate}
   onChange={(e) =>
@@ -603,39 +610,37 @@ export default function BookEditPage() {
                   </div>
                 </div>
 
-                <div>
-                  <p style={ui.input.label}>所持</p>
-                  <label style={ui.bookEditPage.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={editForm.owned}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({
-                          ...prev,
-                          owned: e.target.checked,
-                        }))
-                      }
-                    />
-                    所持
-                  </label>
-                </div>
+                <div className="fieldFull">
+  <label style={ui.bookEditPage.checkboxLabel}>
+    <input
+      type="checkbox"
+      checked={editForm.owned}
+      onChange={(e) =>
+        setEditForm((prev) => ({
+          ...prev,
+          owned: e.target.checked,
+        }))
+      }
+    />
+    所持
+  </label>
+</div>
 
-                <div>
-                  <p style={ui.input.label}>電子書籍</p>
-                  <label style={ui.bookEditPage.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={editForm.isEbook}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({
-                          ...prev,
-                          isEbook: e.target.checked,
-                        }))
-                      }
-                    />
-                    電子書籍
-                  </label>
-                </div>
+                <div className="fieldFull">
+  <label style={ui.bookEditPage.checkboxLabel}>
+    <input
+      type="checkbox"
+      checked={editForm.isEbook}
+      onChange={(e) =>
+        setEditForm((prev) => ({
+          ...prev,
+          isEbook: e.target.checked,
+        }))
+      }
+    />
+    電子書籍
+  </label>
+</div>
 
                 <div className="fieldFull">
                   <p style={ui.input.label}>棚</p>

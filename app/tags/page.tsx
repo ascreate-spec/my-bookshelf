@@ -338,13 +338,22 @@ export default function TagsPage() {
       <style jsx>{`
   @media (max-width: 768px) {
     .addArea {
-      flex-direction: column;
-      align-items: stretch;
+      display: grid !important;
+      gap: 10px !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin-bottom: 20px !important;
+    }
+
+    .addArea > * {
+      width: 100% !important;
     }
 
     .row {
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
+      gap: 10px;
     }
 
     .actions {
@@ -353,12 +362,18 @@ export default function TagsPage() {
     }
 
     .editRow {
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
+      grid-template-columns: 1fr !important;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .editRow input {
+      width: 100%;
     }
 
     .editActions {
-      width: auto;
+      width: 100%;
+      justify-content: flex-end;
       flex-wrap: nowrap;
     }
 
@@ -372,22 +387,17 @@ export default function TagsPage() {
       <div style={ui.tagsPage.pageWrap}>
 
         <PageHeader title="タグ設定" backHref="/" />
-        <p style={ui.layout.sectionDescription}>
-          タグの追加・編集・削除ができます
-        </p>
 
         <div style={ui.tagsPage.searchArea}>
-          <label htmlFor="tagSearch" style={ui.input.label}>
-            タグを検索
-          </label>
 
           <div style={ui.tagsPage.relativeField}>
             <input
-              id="tagSearch"
-              type="text"
-              value={searchText}
+  id="tagSearch"
+  type="text"
+  value={searchText}
+  autoComplete="off"
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="タグ名で検索"
+              placeholder="タグを検索"
               style={{
                 ...ui.input.base,
                 paddingRight: "36px",
@@ -407,7 +417,16 @@ export default function TagsPage() {
           </div>
         </div>
 
-        <div className="addArea" style={ui.tagsPage.addArea}>
+        <div
+  className="addArea"
+  style={{
+    display: "grid",
+    gap: "10px",
+    width: "100%",
+    marginTop: "16px",
+    marginBottom: "20px",
+  }}
+>
   <div style={ui.tagsPage.addInputWrap}>
     <input
       value={newTagName}
@@ -415,8 +434,11 @@ export default function TagsPage() {
       onKeyDown={(e) => {
         if (e.key === "Enter") handleAddTag();
       }}
-      placeholder="追加するタグ名"
-      style={ui.input.base}
+      placeholder="追加するタグ"
+      style={{
+  ...ui.input.base,
+  width: "100%",
+}}
     />
 
     {newTagName && (
@@ -436,6 +458,8 @@ export default function TagsPage() {
     onClick={handleAddTag}
     style={{
       ...ui.button.primary,
+      width: "100%",
+      justifyContent: "center",
       ...ui.tagsPage.smallActionButton,
     }}
   >
@@ -447,6 +471,8 @@ export default function TagsPage() {
     onClick={handleImportTagsFromBooks}
     style={{
       ...ui.button.secondary,
+      width: "100%",
+      justifyContent: "center",
       ...ui.tagsPage.importButton,
     }}
   >
@@ -512,7 +538,21 @@ export default function TagsPage() {
                   </div>
                 ) : (
                   <>
-                    <div style={ui.tagsPage.tagName}>
+                    <div
+  style={{
+    ...ui.tagsPage.tagName,
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    maxWidth: "100%",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: ui.colors.hoverBg,
+    color: ui.colors.text,
+    fontSize: "14px",
+    fontWeight: 600,
+  }}
+>
   #{tag.name}
 </div>
 

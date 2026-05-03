@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import PageHeader from "../../components/PageHeader";
@@ -48,8 +48,16 @@ export default function AddBookPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const searchInFlightRef = useRef(false);
+
   const [searchResults, setSearchResults] = useState<BookSearchItem[]>([]);
   const [selectedBook, setSelectedBook] = useState<BookSearchItem | null>(null);
+
+  const [searchMessage, setSearchMessage] = useState("");
+  const [lastSearch, setLastSearch] = useState<{
+    query: string;
+    time: number;
+  } | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -123,14 +131,36 @@ export default function AddBookPage() {
 
   const handleSearch = async () => {
   const trimmed = searchQuery.trim();
+
+  if (searchInFlightRef.current) {
+    return;
+  }
+
   if (!trimmed) {
-    alert("タイトル・著者・ISBNなどを入力してください");
+    setSearchMessage("タイトル・著者・ISBNなどを入力してください。");
+    return;
+  }
+
+  const now = Date.now();
+
+  if (
+    lastSearch &&
+    lastSearch.query === trimmed &&
+    now - lastSearch.time < 10000
+  ) {
+    setSearchMessage(
+      "同じキーワードで続けて検索しています。少し待ってから再検索してください。"
+    );
     return;
   }
 
   try {
+    searchInFlightRef.current = true;
     setSearchLoading(true);
+    setSearchMessage("");
     setSelectedBook(null);
+    setSearchResults([]);
+    setLastSearch({ query: trimmed, time: now });
 
     const results = await searchBooks(trimmed);
     console.log("検索結果:", results);
@@ -138,12 +168,17 @@ export default function AddBookPage() {
     setSearchResults(results);
 
     if (results.length === 0) {
-      alert("本が見つかりませんでした。別のキーワードで検索してください。");
+      setSearchMessage(
+        "本が見つからないか、Google Books APIが一時的に制限されています。少し時間をおいて再検索してください。"
+      );
     }
   } catch (error) {
     console.error(error);
-    alert("検索に失敗しました");
+    setSearchMessage(
+      "検索に失敗しました。少し時間をおいてから再検索してください。"
+    );
   } finally {
+    searchInFlightRef.current = false;
     setSearchLoading(false);
   }
 };
@@ -444,7 +479,10 @@ export default function AddBookPage() {
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          handleSearch();
+
+          if (!searchLoading) {
+            handleSearch();
+          }
         }
       }}
       placeholder="本を検索"
@@ -461,6 +499,7 @@ export default function AddBookPage() {
           setSearchQuery("");
           setSearchResults([]);
           setSelectedBook(null);
+          setSearchMessage("");
         }}
         aria-label="検索文字を消す"
         style={ui.addPage.clearButton}
@@ -473,14 +512,27 @@ export default function AddBookPage() {
   <button
     type="button"
     onClick={() => handleSearch()}
-    disabled={searchLoading}
+    disabled={searchLoading || !searchQuery.trim()}
     style={ui.button.primary}
   >
     {searchLoading ? "検索中..." : "検索"}
   </button>
 </div>
 
-            {searchResults.length > 0 && (
+{searchMessage && (
+  <p
+    style={{
+      marginTop: "12px",
+      color: ui.colors.subText,
+      fontSize: "14px",
+      lineHeight: 1.7,
+    }}
+  >
+    {searchMessage}
+  </p>
+)}
+
+{searchResults.length > 0 && (
               <div style={ui.addPage.resultList}>
                 {searchResults.map((result, index) => {
   const isSelected =
