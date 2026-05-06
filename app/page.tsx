@@ -17,6 +17,13 @@ import { auth } from "../lib/firebase";
 import BottomNav from "../components/BottomNav";
 import { isAllowedEmail } from "../lib/authGuard";
 import BookBadges from "../components/BookBadges";
+import {
+  BookshelfIcon,
+  FilterIcon,
+  SortIcon,
+  SeriesIcon,
+  FavoriteIcon,
+} from "../components/icons";
 
 type SavedBook = {
   id: string;
@@ -24,6 +31,7 @@ type SavedBook = {
   subTitle?: string;
   seriesName?: string;
   isEbook?: boolean;
+  isFavorite?: boolean;
   isbn: string;
   publisher?: string;
   author?: string;
@@ -90,10 +98,15 @@ export default function Home() {
   const [showTagFilterSuggestions, setShowTagFilterSuggestions] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
+
+  const toggleFilters = () => {
+  setShowFilters((prev) => !prev);
+};
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [useSeriesView, setUseSeriesView] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const statusTabs = ["すべて", "未読", "読書中", "読了"];
 
   useEffect(() => {
@@ -121,6 +134,7 @@ export default function Home() {
   subTitle: doc.data().subTitle || "",
   seriesName: doc.data().seriesName || "",
   isEbook: doc.data().isEbook ?? false,
+  isFavorite: doc.data().isFavorite ?? false,
   isbn: doc.data().isbn || "",
   publisher: doc.data().publisher || "",
   author: doc.data().author || "",
@@ -306,15 +320,25 @@ const handleTagFilterKeyDown = (
       );
 
       const matchesOwned =
-        selectedOwned === "すべて"
-          ? true
-          : selectedOwned === "所持"
-          ? book.owned === true
-          : book.owned !== true;
+  selectedOwned === "すべて"
+    ? true
+    : selectedOwned === "所持"
+    ? book.owned === true
+    : book.owned !== true;
 
-      if (!matchesShelf || !matchesStatus || !matchesTag || !matchesOwned) {
-        return false;
-      }
+const matchesFavorite = showFavoritesOnly
+  ? book.isFavorite === true
+  : true;
+
+if (
+  !matchesShelf ||
+  !matchesStatus ||
+  !matchesTag ||
+  !matchesOwned ||
+  !matchesFavorite
+) {
+  return false;
+}
 
       if (!keyword) return true;
 
@@ -325,6 +349,7 @@ const handleTagFilterKeyDown = (
   book.subTitle || "",
   book.seriesName || "",
   book.isEbook ? "電子書籍 ebook" : "",
+  book.isFavorite ? "お気に入り favorite" : "",
   book.author || "",
   book.isbn || "",
   book.publisher || "",
@@ -369,6 +394,7 @@ const handleTagFilterKeyDown = (
     selectedShelf,
     selectedStatus,
     selectedOwned,
+    showFavoritesOnly,
     searchText,
     selectedTags,
     sortOrder,
@@ -485,12 +511,11 @@ const handleTagFilterKeyDown = (
   margin-bottom: 4px;
 }
 
-  .filtersGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 28px;
-  }
+  .filterPanel {
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
 
   .booksGrid {
     display: grid;
@@ -553,6 +578,8 @@ const handleTagFilterKeyDown = (
   gap: 8px;
   flex: 0 0 auto;
   margin: 0;
+  position: relative;
+  z-index: 20;
 }
 
 .iconButton {
@@ -561,13 +588,20 @@ const handleTagFilterKeyDown = (
   border: 1px solid ${ui.colors.border};
   border-radius: 999px;
   background: ${ui.colors.cardBg};
-  color: ${ui.colors.text};
+  color: ${ui.colors.primary};
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
+  position: relative;
+  z-index: 30;
+  padding: 0;
+}
+
+.iconButton svg {
+  display: block;
 }
 
 .iconButtonActive {
@@ -610,42 +644,55 @@ const handleTagFilterKeyDown = (
 }
 
   @media (max-width: 768px) {
-    .filtersGrid {
-      grid-template-columns: 1fr;
-    }
+  .filterPanel {
+  grid-template-columns: 1fr;
+}
 
-    .booksGrid {
-      grid-template-columns: 1fr;
-    }
+  .booksGrid {
+    grid-template-columns: 1fr;
+  }
 
-    .filtersGrid.filtersMobileHidden {
-      display: none;
-    }
-
-    .filtersGrid.filtersMobileVisible {
-      display: grid;
-    }
-    
-    .statusAndToolbar {
-  align-items: flex-start;
+  .statusAndToolbar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
   gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
 }
 
 .statusTabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
+  width: 100%;
+  overflow: visible;
+  padding-bottom: 0;
 }
 
-.statusTab {
-  padding: 8px 12px;
-  font-size: 13px;
-}
-
-.iconButton {
-  width: 36px;
-  height: 36px;
-  font-size: 16px;
-}
+  .statusTab {
+    padding: 8px 6px;
+    font-size: 13px;
+    text-align: center;
   }
+
+  .toolbarRow {
+  display: flex !important;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+  position: relative;
+  z-index: 20;
+}
+
+  .iconButton {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    position: relative;
+    z-index: 30;
+  }
+}
 `}</style>
 
       <div className="pageWrap">
@@ -673,6 +720,7 @@ const handleTagFilterKeyDown = (
         maxWidth: "100%",
         boxSizing: "border-box",
         paddingRight: "36px",
+        border: `1px solid ${ui.colors.borderSoft}`,
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
@@ -710,28 +758,26 @@ const handleTagFilterKeyDown = (
   </div>
 
   <div className="toolbarRow">
-    <button
-      type="button"
-      className={`iconButton ${showFilters ? "iconButtonActive" : ""}`}
-      onClick={() => setShowFilters((prev) => !prev)}
-      aria-label={showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
-      title={showFilters ? "絞り込みを閉じる" : "絞り込みを開く"}
-    >
-      ⛃
-    </button>
-
+<button
+  type="button"
+  className={`iconButton ${showFilters ? "iconButtonActive" : ""}`}
+  onClick={toggleFilters}
+  aria-pressed={showFilters}
+  aria-label={showFilters ? "フィルターOFF" : "フィルターON"}
+  title={showFilters ? "フィルターOFF" : "フィルターON"}
+>
+  <FilterIcon />
+</button>
     <div className="sortMenuWrap">
-      <button
-        type="button"
-        className={`iconButton ${
-          sortOrder !== "newest" ? "iconButtonActive" : ""
-        }`}
-        onClick={() => setShowSortMenu((prev) => !prev)}
-        aria-label="並び替え"
-        title="並び替え"
-      >
-        ↕
-      </button>
+<button
+  type="button"
+  className={`iconButton ${sortOrder !== "newest" ? "iconButtonActive" : ""}`}
+  onClick={() => setShowSortMenu((prev) => !prev)}
+  aria-label="並び替え"
+  title="並び替え"
+>
+  <SortIcon />
+</button>
 
       {showSortMenu && (
         <div className="sortMenu">
@@ -776,23 +822,35 @@ const handleTagFilterKeyDown = (
     </div>
 
     <button
-      type="button"
-      className={`iconButton ${useSeriesView ? "iconButtonActive" : ""}`}
-      onClick={() => setUseSeriesView((prev) => !prev)}
-      aria-label="シリーズ表示"
-      title="シリーズ表示"
-    >
-      ⧉
-    </button>
+  type="button"
+  className={`iconButton ${useSeriesView ? "iconButtonActive" : ""}`}
+  onClick={() => setUseSeriesView((prev) => !prev)}
+  aria-label="シリーズ表示"
+  title="シリーズ表示"
+>
+  <SeriesIcon />
+</button>
+
+    <button
+  type="button"
+  className={`iconButton ${showFavoritesOnly ? "iconButtonActive" : ""}`}
+  onClick={() => setShowFavoritesOnly((prev) => !prev)}
+  aria-pressed={showFavoritesOnly}
+  aria-label={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
+  title={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
+>
+  <FavoriteIcon filled={showFavoritesOnly} />
+</button>
   </div>
 </div>
 
         <div
-          className={`filtersGrid ${
-            showFilters ? "filtersMobileVisible" : "filtersMobileHidden"
-          }`}
-        >
-          <div className="filterBox" style={{ position: "relative" }}>
+  className="filterPanel"
+  style={{
+    display: showFilters ? "grid" : "none",
+  }}
+>
+  <div className="filterBox" style={{ position: "relative" }}>
             <label htmlFor="tagFilter" style={ui.input.label}>
               タグで絞り込み
             </label>
@@ -971,17 +1029,17 @@ const handleTagFilterKeyDown = (
               <option value="すべて">すべて</option>
               <option value="所持">所持</option>
               <option value="未所持">未所持</option>
-            </select>
+                        </select>
           </div>
-        </div>
-
+          </div>
         <div style={{ marginTop: "24px" }}>
 
           {(selectedShelf ||
   searchText ||
   selectedTags.length > 0 ||
   selectedStatus !== "すべて" ||
-  selectedOwned !== "すべて") && (
+  selectedOwned !== "すべて" ||
+  showFavoritesOnly) && (
             <div
               style={{
                 display: "flex",
@@ -1048,6 +1106,17 @@ const handleTagFilterKeyDown = (
   所持絞り込みを解除
 </button>
               )}
+
+  {showFavoritesOnly && (
+  <button
+    onClick={() => setShowFavoritesOnly(false)}
+    style={ui.button.muted}
+    onMouseEnter={(e) => applyHoverStyle(e, hoverStyles.buttonMuted)}
+    onMouseLeave={clearHoverStyle}
+  >
+    お気に入り絞り込みを解除
+  </button>
+)}              
             </div>
           )}
 
@@ -1118,6 +1187,17 @@ const handleTagFilterKeyDown = (
     <BookBadges owned={book.owned} isEbook={book.isEbook} />
   </div>
 )}
+
+{book.isFavorite && (
+  <div
+    style={ui.homePage.favoriteBadge}
+    aria-label="お気に入り"
+    title="お気に入り"
+  >
+    <FavoriteIcon filled size={18} />
+  </div>
+)}
+
                   <div
                     style={{
                       display: "flex",
@@ -1213,6 +1293,16 @@ const handleTagFilterKeyDown = (
       />
     </div>
     )}
+
+    {item.book.isFavorite && (
+  <div
+    style={ui.homePage.favoriteBadge}
+    aria-label="お気に入り"
+    title="お気に入り"
+  >
+    <FavoriteIcon filled size={18} />
+  </div>
+)}
               <div
                 style={{
                   display: "flex",
@@ -1314,6 +1404,16 @@ const handleTagFilterKeyDown = (
     style={ui.homePage.bookCardBadgeArea}
   >
     <BookBadges owned={book.owned} isEbook={book.isEbook} />
+  </div>
+)}
+
+{book.isFavorite && (
+  <div
+    style={ui.homePage.favoriteBadge}
+    aria-label="お気に入り"
+    title="お気に入り"
+  >
+    <FavoriteIcon filled size={18} />
   </div>
 )}
           <div

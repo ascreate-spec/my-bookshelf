@@ -58,7 +58,7 @@ export const ui = {
 },
 
   shadows: {
-    header: "0 2px 10px rgba(43, 47, 51, 0.04)",
+    header: "none",
     card: "0 2px 10px rgba(43, 47, 51, 0.04)",
     cardHover: "0 6px 18px rgba(43, 47, 51, 0.10)",
     bottomNav: "0 -4px 12px rgba(43, 47, 51, 0.06)",
@@ -67,16 +67,16 @@ export const ui = {
 
   header: {
   fixed: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2000,
-    background: "#FFFFFF",
-    borderBottom: "1px solid #E7EAED",
-    boxShadow: "0 2px 10px rgba(43, 47, 51, 0.04)",
-    padding: "14px 16px 10px",
-  } as CSSProperties,
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: 2000,
+  background: "#FFFFFF",
+  borderBottom: "none",
+  boxShadow: "none",
+  padding: "14px 16px 10px",
+} as CSSProperties,
 
     inner: {
       maxWidth: "820px",
@@ -263,6 +263,22 @@ bookTextAreaWithTwoBadges: {
     fontSize: "16px",
     color: "#6B7280",
   } as CSSProperties,
+
+  favoriteBadge: {
+  position: "absolute",
+  top: "10px",
+  left: "10px",
+  width: "28px",
+  height: "28px",
+  borderRadius: "999px",
+  background: "#F6E7A6",
+  color: "#5A4A1F",
+  border: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 5,
+} as CSSProperties,
 },
 
 addPage: {

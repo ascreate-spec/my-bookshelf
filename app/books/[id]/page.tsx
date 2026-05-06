@@ -41,6 +41,7 @@ type SavedBook = {
   subTitle?: string;
   seriesName?: string;
   isEbook?: boolean;
+  isFavorite?: boolean;
 };
 
 type Shelf = {
@@ -63,6 +64,7 @@ type EditForm = {
   subTitle: string;
   seriesName: string;
   isEbook: boolean;
+  isFavorite: boolean;
 };
 
 export default function BookEditPage() {
@@ -93,6 +95,7 @@ export default function BookEditPage() {
     subTitle: "",
     seriesName: "",
     isEbook: false,
+    isFavorite: false,
     isbn: "",
     publisher: "",
     author: "",
@@ -146,6 +149,7 @@ export default function BookEditPage() {
         subTitle: data.subTitle || "",
         seriesName: data.seriesName || "",
         isEbook: data.isEbook ?? false,
+        isFavorite: data.isFavorite ?? false,
       };
 
       if (user && fetchedBook.uid && fetchedBook.uid !== user.uid) {
@@ -161,6 +165,7 @@ export default function BookEditPage() {
         subTitle: fetchedBook.subTitle || "",
         seriesName: fetchedBook.seriesName || "",
         isEbook: fetchedBook.isEbook ?? false,
+        isFavorite: fetchedBook.isFavorite ?? false,
         isbn: fetchedBook.isbn || "",
         publisher: fetchedBook.publisher || "",
         author: fetchedBook.author || "",
@@ -387,6 +392,7 @@ export default function BookEditPage() {
         subTitle: editForm.subTitle.trim(),
         seriesName: editForm.seriesName.trim(),
         isEbook: editForm.isEbook,
+        isFavorite: editForm.isFavorite,
       });
 
       alert("更新しました");
@@ -537,6 +543,19 @@ export default function BookEditPage() {
   電子書籍
 </span>
                 )}
+
+                {editForm.isFavorite && (
+  <span
+    style={{
+      ...ui.badge.shelf,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "4px",
+    }}
+  >
+    ★ お気に入り
+  </span>
+)}
               </div>
             </div>
           </div>
@@ -642,6 +661,35 @@ export default function BookEditPage() {
   </label>
 </div>
 
+<div className="fieldFull">
+  <button
+    type="button"
+    onClick={() =>
+      setEditForm((prev) => ({
+        ...prev,
+        isFavorite: !prev.isFavorite,
+      }))
+    }
+    style={{
+  border: "none",
+  background: editForm.isFavorite ? "#F6E7A6" : ui.colors.hoverBg,
+  color: editForm.isFavorite ? "#5A4A1F" : ui.colors.subText,
+  borderRadius: "999px",
+  padding: "10px 14px",
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  fontWeight: 600,
+  width: "fit-content",
+}}
+    aria-pressed={editForm.isFavorite}
+  >
+    <span>{editForm.isFavorite ? "★" : "☆"}</span>
+    お気に入り
+  </button>
+</div>
+
                 <div className="fieldFull">
                   <p style={ui.input.label}>棚</p>
                   <select
@@ -668,10 +716,13 @@ export default function BookEditPage() {
   }}
 >
                     {editForm.tags.map((tag, index) => (
-                      <span style={ui.bookEditPage.tagChip}>
-                        #{tag}
-                        <button
-                          type="button"
+  <span
+    key={`${tag}-${index}`}
+    style={ui.bookEditPage.tagChip}
+  >
+    #{tag}
+    <button
+      type="button"
                           onClick={() => handleRemoveTag(tag)}
                           style={ui.bookEditPage.tagRemoveButton}
                           aria-label={`${tag} を削除`}

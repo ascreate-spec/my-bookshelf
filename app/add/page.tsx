@@ -409,6 +409,67 @@ export default function AddBookPage() {
           border-top: 1px solid ${ui.colors.borderSoft};
         }
 
+        .bottomSheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 51, 34, 0.24);
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+.bottomSheet {
+  width: 100%;
+  max-width: 760px;
+  max-height: 86vh;
+  overflow-y: auto;
+  background: ${ui.colors.cardBg};
+  border-radius: 20px 20px 16px 16px;
+  padding: 18px;
+  box-shadow: 0 -8px 28px rgba(38, 51, 34, 0.18);
+}
+
+.bottomSheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.bottomSheetTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: ${ui.colors.text};
+}
+
+.bottomSheetClose {
+  border: none;
+  background: ${ui.colors.hoverBg};
+  color: ${ui.colors.text};
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .bottomSheetBackdrop {
+    padding: 0;
+  }
+
+  .bottomSheet {
+    max-height: 88vh;
+    border-radius: 18px 18px 0 0;
+    padding: 16px;
+  }
+}
+
         .bookRow {
           display: grid;
           grid-template-columns: 120px 1fr;
@@ -436,9 +497,6 @@ export default function AddBookPage() {
       <div style={ui.addPage.pageWrap}>
 
         <PageHeader title="本を追加" backHref="/" />
-        <p style={ui.layout.sectionDescription}>
-          検索して追加、または手動で追加できます
-        </p>
 
         <div style={ui.addPage.tabRow}>
           <button
@@ -472,25 +530,27 @@ export default function AddBookPage() {
 
   <div style={ui.addPage.searchInputWrap}>
 
-    <input
-      type="text"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
+<input
+  type="text"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
 
-          if (!searchLoading) {
-            handleSearch();
-          }
-        }
-      }}
-      placeholder="本を検索"
-      style={{
-  ...ui.input.base,
-  padding: searchQuery ? "12px 40px 12px 12px" : "12px",
-}}
-    />
+      if (!searchLoading) {
+        handleSearch();
+      }
+    }
+  }}
+  autoComplete="off"
+  autoCorrect="off"
+  spellCheck={false}
+  style={{
+    ...ui.input.base,
+    padding: searchQuery ? "12px 40px 12px 12px" : "12px",
+  }}
+/>
 
     {searchQuery && (
       <button
@@ -595,91 +655,115 @@ export default function AddBookPage() {
               </div>
             )}
 
-            {selectedBook && (
-              <div style={ui.addPage.selectedArea}>
-                <p style={ui.addPage.selectedTitle}>
-                  選択中の本
-                </p>
+{selectedBook && (
+  <div
+    className="bottomSheetBackdrop"
+    onClick={() => setSelectedBook(null)}
+  >
+    <div
+      className="bottomSheet"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="bottomSheetHeader">
+        <p className="bottomSheetTitle">選択中の本</p>
 
-                <div className="bookRow" style={ui.addPage.bookRow}>
-                  <div>
-                    {normalizeThumbnailUrl(selectedBook.thumbnail) ? (
-                      <img
-  src={normalizeThumbnailUrl(selectedBook.thumbnail)}
-  alt={selectedBook.title}
-  className="h-full w-full object-cover"
-  loading="lazy"
-  style={ui.addPage.selectedCover}
-/>
-                    ) : (
-                      <div
-                        style={ui.addPage.selectedCoverPlaceholder}
-                      >
-                        画像なし
-                      </div>
-                    )}
-                  </div>
+        <button
+          type="button"
+          className="bottomSheetClose"
+          onClick={() => setSelectedBook(null)}
+          aria-label="閉じる"
+        >
+          ×
+        </button>
+      </div>
 
-                  <div>
-                    <p style={ui.text.title}>{selectedBook.title}</p>
-                    {selectedBook.authors?.length > 0 && (
-                      <p style={ui.text.author}>{selectedBook.authors.join(", ")}</p>
-                    )}
-                    {selectedBook.publisher && (
-                      <p style={ui.text.helper}>出版社: {selectedBook.publisher}</p>
-                    )}
-                    {selectedBook.isbn && (
-                      <p style={ui.text.helper}>ISBN: {selectedBook.isbn}</p>
-                    )}
+      <div className="bookRow" style={ui.addPage.bookRow}>
+        <div>
+          {normalizeThumbnailUrl(selectedBook.thumbnail) ? (
+            <img
+              src={normalizeThumbnailUrl(selectedBook.thumbnail)}
+              alt={selectedBook.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              style={ui.addPage.selectedCover}
+            />
+          ) : (
+            <div style={ui.addPage.selectedCoverPlaceholder}>
+              画像なし
+            </div>
+          )}
+        </div>
 
-                    <label style={ui.input.label}>棚</label>
-                    <select
-                      value={selectedShelf}
-                      onChange={(e) => setSelectedShelf(e.target.value)}
-                      style={ui.input.base}
-                    >
-                      <option value="">未分類</option>
-                      {shelfList
-                        .filter((shelf) => shelf !== "未分類")
-                        .map((shelf) => (
-                          <option key={shelf} value={shelf}>
-                            {shelf}
-                          </option>
-                        ))}
-                    </select>
+        <div>
+          <p style={ui.text.title}>{selectedBook.title}</p>
 
-                    <label style={ui.addPage.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        checked={owned}
-                        onChange={(e) => setOwned(e.target.checked)}
-                      />
-                      所持
-                    </label>
+          {selectedBook.authors?.length > 0 && (
+            <p style={ui.text.author}>
+              {selectedBook.authors.join(", ")}
+            </p>
+          )}
 
-                    <label style={ui.addPage.checkboxLabelNoMargin}>
-                      <input
-                        type="checkbox"
-                        checked={isEbook}
-                        onChange={(e) => setIsEbook(e.target.checked)}
-                      />
-                      電子書籍
-                    </label>
+          {selectedBook.publisher && (
+            <p style={ui.text.helper}>
+              出版社: {selectedBook.publisher}
+            </p>
+          )}
 
-                    <div style={ui.addPage.actionArea}>
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        style={ui.button.primary}
-                      >
-                        {saving ? "追加中..." : "追加する"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          {selectedBook.isbn && (
+            <p style={ui.text.helper}>
+              ISBN: {selectedBook.isbn}
+            </p>
+          )}
+
+          <label style={ui.input.label}>棚</label>
+          <select
+            value={selectedShelf}
+            onChange={(e) => setSelectedShelf(e.target.value)}
+            style={ui.input.base}
+          >
+            <option value="">未分類</option>
+            {shelfList
+              .filter((shelf) => shelf !== "未分類")
+              .map((shelf) => (
+                <option key={shelf} value={shelf}>
+                  {shelf}
+                </option>
+              ))}
+          </select>
+
+          <label style={ui.addPage.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={owned}
+              onChange={(e) => setOwned(e.target.checked)}
+            />
+            所持
+          </label>
+
+          <label style={ui.addPage.checkboxLabelNoMargin}>
+            <input
+              type="checkbox"
+              checked={isEbook}
+              onChange={(e) => setIsEbook(e.target.checked)}
+            />
+            電子書籍
+          </label>
+
+          <div style={ui.addPage.actionArea}>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              style={ui.button.primary}
+            >
+              {saving ? "追加中..." : "追加する"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
           </div>
         ) : (
           <div className="sectionCard" style={ui.addPage.sectionCard}>
