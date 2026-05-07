@@ -11,6 +11,8 @@ import { ui } from "@/lib/ui";
 import BottomNav from "../../components/BottomNav";
 import { searchBooks, type BookSearchItem } from "../../lib/bookSearch";
 import Link from "next/link";
+import { FavoriteIcon } from "../../components/icons";
+import BarcodeScanner from "../../components/BarcodeScanner";
 
 type SavedBookInput = {
   title: string;
@@ -31,6 +33,7 @@ type SavedBookInput = {
   createdAt: Date;
   updatedAt: Date;
   isEbook: boolean;
+  isFavorite: boolean;
 };
 
 function normalizeThumbnailUrl(url: string): string {
@@ -65,6 +68,14 @@ export default function AddBookPage() {
   const [owned, setOwned] = useState(false);
   const [selectedShelf, setSelectedShelf] = useState("");
 
+  const [selectedStatus, setSelectedStatus] = useState("未読");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+
+  const [manualStatus, setManualStatus] = useState("未読");
+  const [manualTags, setManualTags] = useState("");
+  const [manualIsFavorite, setManualIsFavorite] = useState(false);
+
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthor, setManualAuthor] = useState("");
   const [manualPublisher, setManualPublisher] = useState("");
@@ -74,6 +85,7 @@ export default function AddBookPage() {
   const [manualShelf, setManualShelf] = useState("");
 
   const [shelfList, setShelfList] = useState<string[]>([]);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -129,8 +141,9 @@ export default function AddBookPage() {
     }
   }, [user, authLoading]);
 
-  const handleSearch = async () => {
-  const trimmed = searchQuery.trim();
+  
+  const handleSearch = async (overrideQuery?: string) => {
+    const trimmed = (overrideQuery ?? searchQuery).trim();
 
   if (searchInFlightRef.current) {
     return;
@@ -182,6 +195,25 @@ export default function AddBookPage() {
     setSearchLoading(false);
   }
 };
+    
+  const handleBarcodeDetected = async (text: string) => {
+  const code = text.replace(/[^0-9Xx]/g, "");
+
+  const isIsbn13 = /^97[89]\d{10}$/.test(code);
+  const isIsbn10 = /^\d{9}[\dXx]$/.test(code);
+
+  setShowBarcodeScanner(false);
+
+  if (!isIsbn13 && !isIsbn10) {
+    alert(
+      `ISBNではないバーコードを読み取りました。\n読み取った値: ${code}\n\nISBNバーコードは通常 978 または 979 で始まります。`
+    );
+    return;
+  }
+
+  setSearchQuery(code);
+  await handleSearch(code);
+}; 
 
   const handleSave = async () => {
     if (!user) return;
@@ -203,15 +235,19 @@ export default function AddBookPage() {
         isbn: selectedBook.isbn?.trim() || "",
         image: normalizeThumbnailUrl(selectedBook.thumbnail || ""),
         shelf: selectedShelf || "未分類",
-        status: "未読",
-        finishedDate: "",
+        status: selectedStatus,
+        finishedDate: selectedStatus === "読了" ? new Date().toISOString().slice(0, 10) : "",
         memo: "",
-        tags: [],
+        tags: tagInput
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
         owned,
         uid: user.uid,
         createdAt: new Date(),
         updatedAt: new Date(),
         isEbook,
+        isFavorite,
       };
 
       await addDoc(collection(db, "books"), payload);
@@ -223,6 +259,10 @@ export default function AddBookPage() {
       setIsEbook(false);
       setOwned(false);
       setSelectedShelf("");
+      setSelectedStatus("未読");
+      setIsFavorite(false);
+      setTagInput("");
+      setShowBarcodeScanner(false);
       router.push("/");
     } catch (error) {
       console.error(error);
@@ -257,15 +297,22 @@ export default function AddBookPage() {
         isbn: manualIsbn.trim(),
         image: "",
         shelf: manualShelf || "未分類",
-        status: "未読",
-        finishedDate: "",
+        status: manualStatus,
+        finishedDate:
+          manualStatus === "読了"
+            ? new Date().toISOString().slice(0, 10)
+            : "",
         memo: "",
-        tags: [],
+        tags: manualTags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
         owned: manualOwned,
         uid: user.uid,
         createdAt: new Date(),
         updatedAt: new Date(),
         isEbook: manualIsEbook,
+        isFavorite: manualIsFavorite,
       };
 
       await addDoc(collection(db, "books"), payload);
@@ -279,12 +326,16 @@ export default function AddBookPage() {
       setManualOwned(false);
       setManualShelf("");
       router.push("/");
+      setShowBarcodeScanner(false);
     } catch (error) {
       console.error(error);
       alert("追加に失敗しました");
     } finally {
       setSaving(false);
-    }
+      setManualStatus("未読");
+      setManualTags("");
+      setManualIsFavorite(false);
+      }
   };
 
   if (authLoading) {
@@ -579,6 +630,18 @@ export default function AddBookPage() {
   </button>
 </div>
 
+<button
+  type="button"
+  onClick={() => setShowBarcodeScanner(true)}
+  style={{
+    ...ui.button.muted,
+    marginTop: "10px",
+    width: "100%",
+  }}
+>
+  バーコードを読み取る
+</button>
+
 {searchMessage && (
   <p
     style={{
@@ -607,7 +670,12 @@ export default function AddBookPage() {
     ...ui.addPage.resultCard,
     ...(isSelected ? ui.addPage.resultCardSelected : {}),
   }}
-  onClick={() => setSelectedBook(result)}
+  onClick={() => {
+  setSelectedBook(result);
+  setSelectedStatus("未読");
+  setIsFavorite(false);
+  setTagInput("");
+}}
 >
                     <div style={ui.addPage.resultCardInner}>
                       {normalizeThumbnailUrl(result.thumbnail) ? (
@@ -715,6 +783,17 @@ export default function AddBookPage() {
             </p>
           )}
 
+          <label style={ui.input.label}>ステータス</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            style={ui.input.base}
+          >
+            <option value="未読">未読</option>
+            <option value="読書中">読書中</option>
+            <option value="読了">読了</option>
+          </select>
+
           <label style={ui.input.label}>棚</label>
           <select
             value={selectedShelf}
@@ -730,6 +809,15 @@ export default function AddBookPage() {
                 </option>
               ))}
           </select>
+
+          <label style={ui.input.label}>タグ</label>
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            autoComplete="off"
+            style={ui.input.base}
+          />
 
           <label style={ui.addPage.checkboxLabel}>
             <input
@@ -748,6 +836,20 @@ export default function AddBookPage() {
             />
             電子書籍
           </label>
+
+<button
+  type="button"
+  onClick={() => setIsFavorite((prev) => !prev)}
+  style={{
+  ...ui.favoriteButton.base,
+  ...(isFavorite ? ui.favoriteButton.active : ui.favoriteButton.inactive),
+  marginTop: "12px",
+}}
+  aria-pressed={isFavorite}
+>
+  <FavoriteIcon filled={isFavorite} size={18} />
+  お気に入り
+</button>
 
           <div style={ui.addPage.actionArea}>
             <button
@@ -808,6 +910,17 @@ export default function AddBookPage() {
                 />
               </div>
 
+              <label style={ui.input.label}>ステータス</label>
+<select
+  value={manualStatus}
+  onChange={(e) => setManualStatus(e.target.value)}
+  style={ui.input.base}
+>
+  <option value="未読">未読</option>
+  <option value="読書中">読書中</option>
+  <option value="読了">読了</option>
+</select>
+
               <div>
                 <label style={ui.input.label}>棚</label>
                   <select
@@ -825,7 +938,14 @@ export default function AddBookPage() {
                       ))}
                   </select>
               </div>
-
+<label style={ui.input.label}>タグ</label>
+<input
+  type="text"
+  value={manualTags}
+  onChange={(e) => setManualTags(e.target.value)}
+  autoComplete="off"
+  style={ui.input.base}
+/>
               <div>
                 <label
                   style={{
@@ -862,6 +982,21 @@ export default function AddBookPage() {
                   電子書籍
                 </label>
               </div>
+              <button
+  type="button"
+  onClick={() => setManualIsFavorite((prev) => !prev)}
+  style={{
+    ...ui.favoriteButton.base,
+    ...(manualIsFavorite
+      ? ui.favoriteButton.active
+      : ui.favoriteButton.inactive),
+    marginTop: "12px",
+  }}
+  aria-pressed={manualIsFavorite}
+>
+  <FavoriteIcon filled={manualIsFavorite} size={18} />
+  お気に入り
+</button>
 
               <div style={ui.addPage.manualActionArea}>
                 <button
@@ -879,6 +1014,13 @@ export default function AddBookPage() {
       </div>
 
       <BottomNav />
+
+      {showBarcodeScanner && (
+  <BarcodeScanner
+    onDetected={handleBarcodeDetected}
+    onClose={() => setShowBarcodeScanner(false)}
+  />
+)}
     </main>
   );
 }

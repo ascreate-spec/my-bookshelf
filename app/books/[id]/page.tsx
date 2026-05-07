@@ -20,6 +20,7 @@ import { useParams, useRouter } from "next/navigation";
 import { isAllowedEmail } from "../../../lib/authGuard";
 import PageHeader from "../../../components/PageHeader";
 import BottomNav from "../../../components/BottomNav";
+import { FavoriteIcon } from "../../../components/icons";
 
 type SavedBook = {
   id: string;
@@ -553,7 +554,8 @@ export default function BookEditPage() {
       gap: "4px",
     }}
   >
-    ★ お気に入り
+    <FavoriteIcon filled size={14} />
+    お気に入り
   </span>
 )}
               </div>
@@ -671,21 +673,14 @@ export default function BookEditPage() {
       }))
     }
     style={{
-  border: "none",
-  background: editForm.isFavorite ? "#F6E7A6" : ui.colors.hoverBg,
-  color: editForm.isFavorite ? "#5A4A1F" : ui.colors.subText,
-  borderRadius: "999px",
-  padding: "10px 14px",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "8px",
-  fontWeight: 600,
-  width: "fit-content",
+  ...ui.favoriteButton.base,
+  ...(editForm.isFavorite
+    ? ui.favoriteButton.active
+    : ui.favoriteButton.inactive),
 }}
     aria-pressed={editForm.isFavorite}
   >
-    <span>{editForm.isFavorite ? "★" : "☆"}</span>
+    <FavoriteIcon filled={editForm.isFavorite} size={18} />
     お気に入り
   </button>
 </div>

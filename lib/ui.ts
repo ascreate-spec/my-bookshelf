@@ -1152,6 +1152,30 @@ shelvesPage: {
   },
 },
 
+favoriteButton: {
+  base: {
+    border: "none",
+    borderRadius: "999px",
+    padding: "10px 14px",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    fontWeight: 600,
+    width: "fit-content",
+  } as CSSProperties,
+
+  active: {
+    background: "#F6E7A6",
+    color: "#5A4A1F",
+  } as CSSProperties,
+
+  inactive: {
+    background: "#F3F5F1",
+    color: "#6F766B",
+  } as CSSProperties,
+},
+
   badge: {
   shelf: {
   fontWeight: "bold",
