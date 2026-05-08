@@ -948,6 +948,153 @@ shelvesPage: {
   } as CSSProperties,
 },
 
+  logs: {
+  pageWrap: {
+    maxWidth: "760px",
+    margin: "0 auto",
+  } as CSSProperties,
+
+    list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  } as CSSProperties,
+
+  item: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    textDecoration: "none",
+    color: "inherit",
+    cursor: "pointer",
+  } as CSSProperties,
+
+  image: {
+    width: "56px",
+    height: "84px",
+    objectFit: "cover" as const,
+    borderRadius: "6px",
+    background: "#f3f4f6",
+    flexShrink: 0,
+  } as CSSProperties,
+
+  content: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "6px",
+    minWidth: 0,
+  } as CSSProperties,
+
+  title: {
+    fontSize: "14px",
+    fontWeight: 700,
+    lineHeight: 1.4,
+  } as CSSProperties,
+
+  meta: {
+    fontSize: "12px",
+    color: "#6b7280",
+  } as CSSProperties,
+
+  statusBadgeBase: {
+  display: "inline-flex",
+  alignItems: "center",
+  width: "fit-content",
+  padding: "4px 9px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: 700,
+  lineHeight: 1,
+} as CSSProperties,
+
+statusBadgeUnread: {
+  background: "#f3f4f6",
+  color: "#4b5563",
+} as CSSProperties,
+
+statusBadgeReading: {
+  background: "#eff6ff",
+  color: "#2563eb",
+} as CSSProperties,
+
+statusBadgeFinished: {
+  background: "#ecfdf5",
+  color: "#059669",
+} as CSSProperties,
+
+statusBadgePaused: {
+  background: "#fef2f2",
+  color: "#dc2626",
+} as CSSProperties,
+
+itemLink: {
+  display: "flex",
+  gap: "12px",
+  alignItems: "center",
+  flex: 1,
+  minWidth: 0,
+  textDecoration: "none",
+  color: "inherit",
+} as CSSProperties,
+
+deleteButton: {
+  border: "none",
+  background: "#f3f4f6",
+  color: "#6b7280",
+  borderRadius: "999px",
+  padding: "6px 10px",
+  fontSize: "12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  flexShrink: 0,
+} as CSSProperties,
+
+filterWrap: {
+  marginBottom: "14px",
+} as CSSProperties,
+
+filterRow: {
+  display: "flex",
+  gap: "10px",
+  alignItems: "end",
+  flexWrap: "wrap",
+} as CSSProperties,
+
+filterLabel: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "#6b7280",
+} as CSSProperties,
+
+dateInput: {
+  height: "36px",
+  border: "1px solid #e5e7eb",
+  borderRadius: "10px",
+  padding: "0 10px",
+  fontSize: "14px",
+  background: "#fff",
+} as CSSProperties,
+
+clearButton: {
+  height: "36px",
+  border: "none",
+  borderRadius: "999px",
+  padding: "0 14px",
+  background: "#f3f4f6",
+  color: "#6b7280",
+  fontSize: "13px",
+  fontWeight: 700,
+  cursor: "pointer",
+} as CSSProperties,
+},
+
   input: {
   label: {
     display: "block",

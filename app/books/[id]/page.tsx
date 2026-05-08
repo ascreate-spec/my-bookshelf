@@ -68,6 +68,20 @@ type EditForm = {
   isFavorite: boolean;
 };
 
+type ReadingLogInput = {
+  bookId: string;
+  title: string;
+  image: string;
+  status: string;
+  date: string;
+  uid: string;
+  createdAt: Date;
+};
+
+function getTodayString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function BookEditPage() {
   const router = useRouter();
   const params = useParams();
@@ -90,6 +104,8 @@ export default function BookEditPage() {
   const [book, setBook] = useState<SavedBook | null>(null);
   const [shelfList, setShelfList] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+
+  const [originalStatus, setOriginalStatus] = useState("");
 
   const [editForm, setEditForm] = useState<EditForm>({
     title: "",
@@ -160,6 +176,7 @@ export default function BookEditPage() {
       }
 
       setBook(fetchedBook);
+      setOriginalStatus(fetchedBook.status || "未読");
 
       setEditForm({
         title: fetchedBook.title || "",
@@ -373,28 +390,48 @@ export default function BookEditPage() {
       await ensureTagsExist(user.uid, editForm.tags);
 
       await updateDoc(doc(db, "books", bookId), {
-        title: editForm.title.trim() || "タイトルなし",
-        isbn: editForm.isbn.trim(),
-        publisher: editForm.publisher.trim(),
-        author: editForm.author.trim(),
-        authors: editForm.author.trim()
-          ? editForm.author
-              .split(",")
-              .map((name) => name.trim())
-              .filter((name) => name !== "")
-          : [],
-        shelf: normalizedShelf,
-        owned: editForm.owned,
-        status: editForm.status,
-        finishedDate: editForm.finishedDate || "",
-        memo: editForm.memo,
-        tags: editForm.tags,
-        updatedAt: new Date(),
-        subTitle: editForm.subTitle.trim(),
-        seriesName: editForm.seriesName.trim(),
-        isEbook: editForm.isEbook,
-        isFavorite: editForm.isFavorite,
-      });
+  title: editForm.title.trim() || "タイトルなし",
+  isbn: editForm.isbn.trim(),
+  publisher: editForm.publisher.trim(),
+  author: editForm.author.trim(),
+  authors: editForm.author.trim()
+    ? editForm.author
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name !== "")
+    : [],
+  shelf: normalizedShelf,
+  owned: editForm.owned,
+  status: editForm.status,
+  finishedDate: editForm.finishedDate || "",
+  memo: editForm.memo,
+  tags: editForm.tags,
+  updatedAt: new Date(),
+  subTitle: editForm.subTitle.trim(),
+  seriesName: editForm.seriesName.trim(),
+  isEbook: editForm.isEbook,
+  isFavorite: editForm.isFavorite,
+});
+
+if (editForm.status !== originalStatus) {
+  try {
+    const logPayload: ReadingLogInput = {
+      bookId,
+      title: editForm.title.trim() || "タイトルなし",
+      image: book?.image || "",
+      status: editForm.status,
+      date: getTodayString(),
+      uid: user.uid,
+      createdAt: new Date(),
+    };
+
+    await addDoc(collection(db, "readingLogs"), logPayload);
+
+    setOriginalStatus(editForm.status);
+  } catch (logError) {
+    console.error("読書ログの追加に失敗しました", logError);
+  }
+}
 
       alert("更新しました");
       router.push("/");

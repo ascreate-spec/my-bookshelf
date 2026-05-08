@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ui } from "../lib/ui";
-import { AddIcon, BookshelfIcon, ManageIcon } from "./icons";
+import { AddIcon, BookshelfIcon, LogIcon, ManageIcon } from "./icons";
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   const items = [
     { href: "/", label: "本棚", icon: <BookshelfIcon size={30} />, isCenter: false },
+    { href: "/logs", label: "ログ", icon: <LogIcon />, isCenter: false },
     { href: "/add", label: "追加", icon: <AddIcon />, isCenter: true },
     { href: "/manage", label: "管理", icon: <ManageIcon />, isCenter: false },
-  ];
+];
 
   return (
     <nav style={ui.bottomNav.nav}>

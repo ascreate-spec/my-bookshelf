@@ -36,9 +36,23 @@ type SavedBookInput = {
   isFavorite: boolean;
 };
 
+type ReadingLogInput = {
+  bookId: string;
+  title: string;
+  image: string;
+  status: string;
+  date: string;
+  uid: string;
+  createdAt: Date;
+};
+
 function normalizeThumbnailUrl(url: string): string {
   if (!url) return "";
   return url.trim().replace(/^http:\/\//i, "https://");
+}
+
+function getTodayString(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export default function AddBookPage() {
@@ -182,7 +196,7 @@ export default function AddBookPage() {
 
     if (results.length === 0) {
       setSearchMessage(
-        "本が見つからないか、Google Books APIが一時的に制限されています。少し時間をおいて再検索してください。"
+        "本が見つかりませんでした。別のキーワードで検索してください。"
       );
     }
   } catch (error) {
@@ -250,7 +264,19 @@ export default function AddBookPage() {
         isFavorite,
       };
 
-      await addDoc(collection(db, "books"), payload);
+      const bookRef = await addDoc(collection(db, "books"), payload);
+
+const logPayload: ReadingLogInput = {
+  bookId: bookRef.id,
+  title: payload.title,
+  image: payload.image,
+  status: payload.status,
+  date: getTodayString(),
+  uid: user.uid,
+  createdAt: new Date(),
+};
+
+await addDoc(collection(db, "readingLogs"), logPayload);
 
       alert("追加しました");
       setSearchQuery("");
@@ -315,7 +341,19 @@ export default function AddBookPage() {
         isFavorite: manualIsFavorite,
       };
 
-      await addDoc(collection(db, "books"), payload);
+      const bookRef = await addDoc(collection(db, "books"), payload);
+
+const logPayload: ReadingLogInput = {
+  bookId: bookRef.id,
+  title: payload.title,
+  image: payload.image,
+  status: payload.status,
+  date: getTodayString(),
+  uid: user.uid,
+  createdAt: new Date(),
+};
+
+await addDoc(collection(db, "readingLogs"), logPayload);
 
       alert("追加しました");
       setManualTitle("");
