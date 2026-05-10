@@ -29,6 +29,8 @@ type CsvBookRow = {
   memo?: string;
   tags?: string;
   owned?: string | boolean;
+  isEbook?: string | boolean;
+  isFavorite?: string | boolean;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -44,6 +46,8 @@ type ImportedBookRow = {
   memo: string;
   tags: string[];
   owned: boolean;
+  isEbook: boolean;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
   isDuplicate?: boolean;
@@ -52,6 +56,8 @@ type ImportedBookRow = {
 type SavedBook = {
   id: string;
   title: string;
+  isEbook?: boolean;
+  isFavorite?: boolean;
   isbn?: string;
   publisher?: string;
   author?: string;
@@ -140,6 +146,8 @@ export default function DataPage() {
           memo: data.memo || "",
           tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
           owned: data.owned ? "true" : "false",
+          isEbook: data.isEbook ? "true" : "false",
+          isFavorite: data.isFavorite ? "true" : "false",
           createdAt: formatDateString(data.createdAt),
           updatedAt: formatDateString(data.updatedAt),
         };
@@ -157,6 +165,8 @@ export default function DataPage() {
           "memo",
           "tags",
           "owned",
+          "isEbook",
+          "isFavorite",
           "createdAt",
           "updatedAt",
         ],
@@ -369,6 +379,8 @@ const existingKeys = new Set(
         .map((tag: string) => tag.trim())
         .filter((tag: string) => tag !== ""),
       owned: parseBool(row.owned),
+      isEbook: parseBool(row.isEbook),
+      isFavorite: parseBool(row.isFavorite),
       createdAt: String(row.createdAt ?? "").trim(),
       updatedAt: String(row.updatedAt ?? "").trim(),
       isDuplicate: existingKeys.has(key),
@@ -464,6 +476,8 @@ const executeImportCsv = async () => {
           memo: row.memo,
           tags: row.tags,
           owned: row.owned,
+          isEbook: row.isEbook,
+          isFavorite: row.isFavorite,
           uid: user.uid,
           createdAt: row.createdAt ? new Date(row.createdAt) : new Date(),
           updatedAt: row.updatedAt ? new Date(row.updatedAt) : new Date(),
@@ -572,6 +586,10 @@ const executeImportCsv = async () => {
           flex-wrap: wrap;
           align-items: center;
         }
+        
+        .topButtonRow {
+          margin-bottom: 20px;
+        }
 
         .checkRow {
           display: flex;
@@ -595,7 +613,7 @@ const executeImportCsv = async () => {
           本データをCSVでエクスポート・インポートできます
         </p>
 
-        <div className="buttonRow">
+        <div className="buttonRow topButtonRow">
   <button
     type="button"
     onClick={exportCsv}

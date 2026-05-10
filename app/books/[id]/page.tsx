@@ -11,6 +11,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
   updateDoc,
   where,
@@ -78,6 +79,12 @@ type ReadingLogInput = {
   createdAt: Date;
 };
 
+type ReadingLog = {
+  id: string;
+  date: string;
+  status: string;
+};
+
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -99,7 +106,9 @@ export default function BookEditPage() {
   const [deleting, setDeleting] = useState(false);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [tagInput, setTagInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"settings" | "basic">("settings");
+  const [editTab, setEditTab] = useState<"settings" | "basic">("settings");
+  const [pageTab, setPageTab] = useState<"info" | "logs">("info");
+  const [logs, setLogs] = useState<ReadingLog[]>([]);
 
   const [book, setBook] = useState<SavedBook | null>(null);
   const [shelfList, setShelfList] = useState<string[]>([]);
@@ -176,6 +185,7 @@ export default function BookEditPage() {
       }
 
       setBook(fetchedBook);
+      await fetchLogs();
       setOriginalStatus(fetchedBook.status || "未読");
 
       setEditForm({
@@ -197,6 +207,30 @@ export default function BookEditPage() {
 
       return fetchedBook;
     };
+
+     const fetchLogs = async () => {
+      if (!user) {
+        setLogs([]);
+        return;
+      }
+
+      const q = query(
+        collection(db, "readingLogs"),
+        where("uid", "==", user.uid),
+        where("bookId", "==", bookId),
+        orderBy("createdAt", "desc")
+      );
+
+      const snapshot = await getDocs(q);
+
+      const items = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<ReadingLog, "id">),
+      }));
+
+      setLogs(items);
+    };
+
 
     const fetchShelves = async () => {
       if (!user) {
@@ -542,6 +576,35 @@ if (editForm.status !== originalStatus) {
 
         <PageHeader title="本を編集" backHref="/" />
 
+        <div style={ui.bookEditPage.tabs}>
+  <button
+    type="button"
+    onClick={() => setPageTab("info")}
+    style={{
+      ...ui.bookEditPage.tabButton,
+      ...(pageTab === "info"
+        ? ui.bookEditPage.tabButtonActive
+        : {}),
+    }}
+  >
+    本情報
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setPageTab("logs")}
+    style={{
+      ...ui.bookEditPage.tabButton,
+      ...(pageTab === "logs"
+        ? ui.bookEditPage.tabButtonActive
+        : {}),
+    }}
+  >
+    ログ
+  </button>
+</div>
+
+    {pageTab === "info" && (
         <div className="formCard" style={ui.bookEditPage.formCard}>
           <div className="topArea" style={ui.bookEditPage.topArea}>
             <div>
@@ -604,9 +667,9 @@ if (editForm.status !== originalStatus) {
   type="button"
   style={{
     ...ui.bookEditPage.tabButton,
-    ...(activeTab === "basic" ? ui.bookEditPage.tabButtonActive : {}),
+    ...(editTab === "basic" ? ui.bookEditPage.tabButtonActive : {}),
   }}
-  onClick={() => setActiveTab("basic")}
+  onClick={() => setEditTab("basic")}
 >
   基本情報
 </button>
@@ -615,16 +678,16 @@ if (editForm.status !== originalStatus) {
   type="button"
   style={{
     ...ui.bookEditPage.tabButton,
-    ...(activeTab === "settings" ? ui.bookEditPage.tabButtonActive : {}),
+    ...(editTab === "settings" ? ui.bookEditPage.tabButtonActive : {}),
   }}
-  onClick={() => setActiveTab("settings")}
+  onClick={() => setEditTab("settings")}
 >
   ステータス・管理
 </button>
 </div>
 
           <div className="fieldGrid" style={ui.bookEditPage.fieldGrid}>
-            {activeTab === "settings" ? (
+            {editTab === "settings" ? (
               <>
                 <div className="fieldFull">
   <p style={ui.input.label}>ステータス</p>
@@ -649,12 +712,16 @@ if (editForm.status !== originalStatus) {
   }
   disabled={editForm.status !== "読了"}
   style={{
-  ...ui.input.base,
-  ...ui.bookEditPage.dateInput,
-  ...(editForm.status !== "読了"
-    ? ui.bookEditPage.dateInputDisabled
-    : ui.bookEditPage.dateInputEnabled),
-}}
+    ...ui.input.base,
+    ...ui.bookEditPage.dateInput,
+    ...(editForm.status !== "読了"
+      ? ui.bookEditPage.dateInputDisabled
+      : ui.bookEditPage.dateInputEnabled),
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+  }}
 />
 
                   <div style={ui.bookEditPage.smallButtonArea}>
@@ -924,6 +991,23 @@ if (editForm.status !== originalStatus) {
             </button>
           </div>
         </div>
+        )}
+              {pageTab === "logs" && (
+        <div style={ui.bookEditPage.logsWrap}>
+          {logs.length === 0 ? (
+            <p>ログがありません</p>
+          ) : (
+            <div style={ui.bookEditPage.logsList}>
+              {logs.map((log) => (
+                <div key={log.id} style={ui.bookEditPage.logItem}>
+                  <div style={ui.bookEditPage.logDate}>{log.date}</div>
+                  <div style={ui.bookEditPage.logStatus}>{log.status}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       </div>
       <BottomNav />
     </main>

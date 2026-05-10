@@ -183,8 +183,8 @@ export const ui = {
       transform: "translateY(-22px)",
     } as CSSProperties,
 
-    activeColor: "#3E5572",
-    inactiveColor: "#6B7280",
+    activeColor: "#2f5f73",
+    inactiveColor: "#7b8190",
   },
 
   homePage: {
@@ -710,7 +710,191 @@ bookEditPage: {
     flexWrap: "wrap",
     marginTop: "20px",
   } as CSSProperties,
+
+  tabs: {
+  display: "flex",
+  gap: "8px",
+  marginBottom: "16px",
+} as CSSProperties,
+
+logsWrap: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+} as CSSProperties,
+
+logsList: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+} as CSSProperties,
+
+logItem: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "12px",
+  borderRadius: "12px",
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+} as CSSProperties,
+
+logDate: {
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "#374151",
+} as CSSProperties,
+
+logStatus: {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#2563eb",
+} as CSSProperties,
 },
+
+dashboard: {
+  pageWrap: {
+    maxWidth: "760px",
+    margin: "0 auto",
+    width: "100%",
+  } as CSSProperties,
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+    width: "100%",
+    boxSizing: "border-box",
+  } as CSSProperties,
+
+  card: {
+    padding: "16px",
+    borderRadius: "16px",
+    background: "#fff",
+    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
+  } as CSSProperties,
+
+  label: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#6b7280",
+    marginBottom: "8px",
+  } as CSSProperties,
+
+  value: {
+    fontSize: "28px",
+    fontWeight: 900,
+    color: "#111827",
+    lineHeight: 1,
+  } as CSSProperties,
+
+  sectionCard: {
+    marginTop: "16px",
+    padding: "16px",
+    borderRadius: "16px",
+    background: "#fff",
+    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
+    width: "100%",
+    boxSizing: "border-box",
+  } as CSSProperties,
+
+  sectionTitle: {
+    fontSize: "15px",
+    fontWeight: 900,
+    color: "#111827",
+  } as CSSProperties,
+
+  monthlyChart: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  } as CSSProperties,
+
+  monthlyRow: {
+    display: "grid",
+    gridTemplateColumns: "42px 1fr 28px",
+    alignItems: "center",
+    gap: "10px",
+  } as CSSProperties,
+
+  monthLabel: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#6b7280",
+  } as CSSProperties,
+
+  barTrack: {
+    height: "10px",
+    borderRadius: "999px",
+    background: "#eef2f7",
+    overflow: "hidden",
+  } as CSSProperties,
+
+  barFill: {
+    height: "100%",
+    borderRadius: "999px",
+    background: "#5FA7A2",
+  } as CSSProperties,
+
+  monthCount: {
+    fontSize: "12px",
+    fontWeight: 800,
+    color: "#374151",
+    textAlign: "right",
+  } as CSSProperties,
+
+  emptyText: {
+    margin: 0,
+    fontSize: "13px",
+    color: "#6b7280",
+  } as CSSProperties,
+
+  rankList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  } as CSSProperties,
+
+  rankItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 12px",
+    borderRadius: "12px",
+    background: "#f8fafc",
+  } as CSSProperties,
+
+  rankName: {
+    fontSize: "14px",
+    fontWeight: 800,
+    color: "#374151",
+  } as CSSProperties,
+
+  rankCount: {
+    fontSize: "13px",
+    fontWeight: 900,
+    color: "#2f5f73",
+  } as CSSProperties,
+
+  sectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginBottom: "14px",
+  } as CSSProperties,
+
+  yearSelect: {
+    height: "34px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "999px",
+    padding: "0 12px",
+    background: "#fff",
+    color: "#374151",
+    fontSize: "13px",
+    fontWeight: 700,
+  } as CSSProperties,
+  },
 
   managePage: {
   pageWrap: {
@@ -996,103 +1180,271 @@ shelvesPage: {
   } as CSSProperties,
 
   meta: {
-    fontSize: "12px",
-    color: "#6b7280",
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#374151",
   } as CSSProperties,
 
   statusBadgeBase: {
-  display: "inline-flex",
-  alignItems: "center",
-  width: "fit-content",
-  padding: "4px 9px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 700,
-  lineHeight: 1,
-} as CSSProperties,
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    padding: "4px 9px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: 700,
+    lineHeight: 1,
+  } as CSSProperties,
 
-statusBadgeUnread: {
-  background: "#f3f4f6",
-  color: "#4b5563",
-} as CSSProperties,
+  statusBadgeUnread: {
+    background: "#f3f4f6",
+    color: "#4b5563",
+  } as CSSProperties,
 
-statusBadgeReading: {
-  background: "#eff6ff",
-  color: "#2563eb",
-} as CSSProperties,
+  statusBadgeReading: {
+    background: "#eff6ff",
+    color: "#2563eb",
+  } as CSSProperties,
 
-statusBadgeFinished: {
-  background: "#ecfdf5",
-  color: "#059669",
-} as CSSProperties,
+  statusBadgeFinished: {
+    background: "#ecfdf5",
+    color: "#059669",
+  } as CSSProperties,
 
-statusBadgePaused: {
-  background: "#fef2f2",
-  color: "#dc2626",
-} as CSSProperties,
+  statusBadgePaused: {
+    background: "#fef2f2",
+    color: "#dc2626",
+  } as CSSProperties,
 
-itemLink: {
-  display: "flex",
-  gap: "12px",
-  alignItems: "center",
-  flex: 1,
-  minWidth: 0,
-  textDecoration: "none",
-  color: "inherit",
-} as CSSProperties,
+  itemLink: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+    textDecoration: "none",
+    color: "inherit",
+  } as CSSProperties,
 
-deleteButton: {
-  border: "none",
-  background: "#f3f4f6",
-  color: "#6b7280",
-  borderRadius: "999px",
-  padding: "6px 10px",
-  fontSize: "12px",
-  fontWeight: 700,
-  cursor: "pointer",
-  flexShrink: 0,
-} as CSSProperties,
+  deleteButton: {
+    border: "none",
+    background: "#f3f4f6",
+    color: "#6b7280",
+    borderRadius: "999px",
+    padding: "6px 10px",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+    flexShrink: 0,
+  } as CSSProperties,
 
-filterWrap: {
-  marginBottom: "14px",
-} as CSSProperties,
+  filterWrap: {
+    marginBottom: "14px",
+  } as CSSProperties,
 
-filterRow: {
-  display: "flex",
-  gap: "10px",
-  alignItems: "end",
-  flexWrap: "wrap",
-} as CSSProperties,
+  filterRow: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "end",
+    flexWrap: "wrap",
+  } as CSSProperties,
 
-filterLabel: {
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px",
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "#6b7280",
-} as CSSProperties,
+  filterLabel: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#6b7280",
+  } as CSSProperties,
 
-dateInput: {
-  height: "36px",
-  border: "1px solid #e5e7eb",
-  borderRadius: "10px",
-  padding: "0 10px",
-  fontSize: "14px",
-  background: "#fff",
-} as CSSProperties,
+  dateInput: {
+    height: "36px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "0 10px",
+    fontSize: "14px",
+    background: "#fff",
+  } as CSSProperties,
 
-clearButton: {
-  height: "36px",
-  border: "none",
-  borderRadius: "999px",
-  padding: "0 14px",
-  background: "#f3f4f6",
-  color: "#6b7280",
-  fontSize: "13px",
-  fontWeight: 700,
-  cursor: "pointer",
-} as CSSProperties,
+  clearButton: {
+    height: "36px",
+    border: "none",
+    borderRadius: "999px",
+    padding: "0 14px",
+    background: "#f3f4f6",
+    color: "#6b7280",
+    fontSize: "13px",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as CSSProperties,
+
+  countText: {
+    marginBottom: "12px",
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#6b7280",
+  } as CSSProperties,
+
+  dateGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  } as CSSProperties,
+
+  dateHeading: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "#374151",
+    padding: "4px 2px",
+  } as CSSProperties,
+
+  dateGroupList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  } as CSSProperties,
+
+  quickFilterRow: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginBottom: "10px",
+  } as CSSProperties,
+
+  quickFilterButton: {
+    border: "none",
+    borderRadius: "999px",
+    padding: "7px 12px",
+    background: "#eef2ff",
+    color: "#4338ca",
+    fontSize: "13px",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as CSSProperties,
+
+  manualForm: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    marginBottom: "16px",
+    padding: "14px",
+    borderRadius: "14px",
+    background: "#fff",
+  } as CSSProperties,
+
+  manualTitle: {
+    margin: 0,
+    fontSize: "14px",
+    fontWeight: 800,
+    color: "#374151",
+  } as CSSProperties,
+
+  manualGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "10px",
+  } as CSSProperties,
+
+  headerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: "-20px",
+    marginBottom: "14px",
+    paddingRight: "4px",
+  } as CSSProperties,
+
+  iconButton: {
+    width: "40px",
+    height: "40px",
+    border: "none",
+    borderRadius: "999px",
+    background: "#f3f4f6",
+    color: "#374151",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  } as CSSProperties,
+
+  bookSearchList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    marginTop: "10px",
+    maxHeight: "220px",
+    overflowY: "auto",
+  } as CSSProperties,
+
+  bookSearchItem: {
+    border: "none",
+    borderRadius: "12px",
+    padding: "10px 12px",
+    background: "#f3f4f6",
+    color: "#374151",
+    textAlign: "left",
+    fontSize: "14px",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as CSSProperties,
+
+  bookSearchItemActive: {
+    background: "#dbeafe",
+    color: "#1d4ed8",
+  } as CSSProperties,
+
+  editFields: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  } as CSSProperties,
+
+  editInput: {
+    height: "34px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "0 10px",
+    fontSize: "13px",
+    background: "#fff",
+    minWidth: 0,
+  } as CSSProperties,
+
+  actionButtons: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    flexShrink: 0,
+  } as CSSProperties,
+
+  smallActionButton: {
+    border: "none",
+    background: "#dbeafe",
+    color: "#1d4ed8",
+    borderRadius: "999px",
+    padding: "6px 10px",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as CSSProperties,
+
+  smallMutedButton: {
+    border: "none",
+    background: "#f3f4f6",
+    color: "#6b7280",
+    borderRadius: "999px",
+    padding: "6px 10px",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as CSSProperties,
+
+  editPanel: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    alignItems: "flex-end",
+    flexShrink: 0,
+  } as CSSProperties,
 },
 
   input: {

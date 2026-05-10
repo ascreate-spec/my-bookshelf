@@ -68,6 +68,7 @@ export default function AddBookPage() {
   const searchInFlightRef = useRef(false);
 
   const [searchResults, setSearchResults] = useState<BookSearchItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [selectedBook, setSelectedBook] = useState<BookSearchItem | null>(null);
 
   const [searchMessage, setSearchMessage] = useState("");
@@ -193,6 +194,7 @@ export default function AddBookPage() {
     console.log("検索結果:", results);
 
     setSearchResults(results);
+    setVisibleCount(10);
 
     if (results.length === 0) {
       setSearchMessage(
@@ -566,6 +568,13 @@ await addDoc(collection(db, "readingLogs"), logPayload);
           align-items: start;
         }
 
+        .resultCardInner {
+          display: grid;
+          grid-template-columns: 72px 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
         .manualGrid {
           display: grid;
           grid-template-columns: 1fr;
@@ -573,14 +582,25 @@ await addDoc(collection(db, "readingLogs"), logPayload);
         }
 
         @media (max-width: 768px) {
-          .sectionCard {
-            padding: 16px;
-          }
+  .sectionCard {
+    padding: 16px;
+  }
 
-          .bookRow {
-            grid-template-columns: 1fr;
-          }
-        }
+  .bookRow {
+    grid-template-columns: 1fr;
+  }
+
+  .resultCardInner {
+    grid-template-columns: 1fr;
+  }
+
+  .resultCardInner img {
+    width: 88px !important;
+    height: 132px !important;
+    margin: 0 auto;
+    display: block;
+  }
+}
       `}</style>
 
       <div style={ui.addPage.pageWrap}>
@@ -694,8 +714,10 @@ await addDoc(collection(db, "readingLogs"), logPayload);
 )}
 
 {searchResults.length > 0 && (
-              <div style={ui.addPage.resultList}>
-                {searchResults.map((result, index) => {
+              <>
+                <div style={ui.addPage.resultList}>
+                {searchResults.slice(0, visibleCount).map((result, index) => {
+                  
   const isSelected =
     selectedBook?.isbn === result.isbn &&
     selectedBook?.title === result.title;
@@ -715,7 +737,10 @@ await addDoc(collection(db, "readingLogs"), logPayload);
   setTagInput("");
 }}
 >
-                    <div style={ui.addPage.resultCardInner}>
+                    <div
+  className="resultCardInner"
+  style={ui.addPage.resultCardInner}
+>
                       {normalizeThumbnailUrl(result.thumbnail) ? (
                         <img
                           src={normalizeThumbnailUrl(result.thumbnail)}
@@ -759,6 +784,21 @@ await addDoc(collection(db, "readingLogs"), logPayload);
   );
 })}
               </div>
+
+              {visibleCount < searchResults.length && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 10)}
+                  style={{
+                    ...ui.button.muted,
+                    marginTop: "16px",
+                    width: "100%",
+                  }}
+                >
+                  さらに10件表示
+                </button>
+              )}
+            </>
             )}
 
 {selectedBook && (
