@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const googleUrl = new URL("https://www.googleapis.com/books/v1/volumes");
 
   googleUrl.searchParams.set("q", q.trim());
-  googleUrl.searchParams.set("maxResults", "10");
+  googleUrl.searchParams.set("maxResults", "40");
   googleUrl.searchParams.set("printType", "books");
   googleUrl.searchParams.set("key", apiKey);
 

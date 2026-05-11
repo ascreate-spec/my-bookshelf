@@ -494,6 +494,26 @@ await addDoc(collection(db, "readingLogs"), logPayload);
   box-shadow: 0 0 0 2px rgba(75, 107, 70, 0.14);
 }
 
+.resultCover,
+.resultCoverPlaceholder {
+  width: 72px !important;
+  height: 108px !important;
+  border-radius: 6px;
+}
+
+.resultCover {
+  object-fit: cover;
+}
+
+.resultCoverPlaceholder {
+  background: ${ui.colors.inputDisabledBg};
+  color: ${ui.colors.placeholder};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
         .selectedArea {
           margin-top: 20px;
           padding-top: 16px;
@@ -549,55 +569,26 @@ await addDoc(collection(db, "readingLogs"), logPayload);
   line-height: 1;
 }
 
-@media (max-width: 768px) {
-  .bottomSheetBackdrop {
-    padding: 0;
-  }
-
-  .bottomSheet {
-    max-height: 88vh;
-    border-radius: 18px 18px 0 0;
-    padding: 16px;
-  }
+.selectedBookRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
-        .bookRow {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 16px;
-          align-items: start;
-        }
-
-        .resultCardInner {
-          display: grid;
-          grid-template-columns: 72px 1fr;
-          gap: 14px;
-          align-items: start;
-        }
-
-        .manualGrid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-        }
-
-        @media (max-width: 768px) {
+@media (max-width: 768px) {
   .sectionCard {
     padding: 16px;
   }
 
-  .bookRow {
+  .selectedBookRow {
     grid-template-columns: 1fr;
   }
 
-  .resultCardInner {
-    grid-template-columns: 1fr;
-  }
-
-  .resultCardInner img {
-    width: 88px !important;
-    height: 132px !important;
-    margin: 0 auto;
+  .selectedBookRow img {
+    width: 96px !important;
+    height: 144px !important;
+    margin: 0 auto 12px;
     display: block;
   }
 }
@@ -714,92 +705,82 @@ await addDoc(collection(db, "readingLogs"), logPayload);
 )}
 
 {searchResults.length > 0 && (
-              <>
-                <div style={ui.addPage.resultList}>
-                {searchResults.slice(0, visibleCount).map((result, index) => {
-                  
-  const isSelected =
-    selectedBook?.isbn === result.isbn &&
-    selectedBook?.title === result.title;
+  <>
+    <div style={ui.addPage.resultList}>
+      {searchResults.slice(0, visibleCount).map((result, index) => {
+        const isSelected =
+          selectedBook?.isbn === result.isbn &&
+          selectedBook?.title === result.title;
 
-  return (
-    <div
-  key={`${result.isbn || result.title}-${index}`}
-  className="resultCard"
-  style={{
-    ...ui.addPage.resultCard,
-    ...(isSelected ? ui.addPage.resultCardSelected : {}),
-  }}
-  onClick={() => {
-  setSelectedBook(result);
-  setSelectedStatus("未読");
-  setIsFavorite(false);
-  setTagInput("");
-}}
->
-                    <div
-  className="resultCardInner"
-  style={ui.addPage.resultCardInner}
->
-                      {normalizeThumbnailUrl(result.thumbnail) ? (
-                        <img
-                          src={normalizeThumbnailUrl(result.thumbnail)}
-                          alt={result.title}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                          style={ui.addPage.resultCover}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: "72px",
-                            height: "108px",
-                            borderRadius: "6px",
-                            background: ui.colors.inputDisabledBg,
-                            color: ui.colors.placeholder,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "12px",
-                          }}
-                        >
-                          表紙
-                        </div>
-                      )}
-
-                      <div>
-                        <p style={ui.text.title}>{result.title}</p>
-                        {result.authors?.length > 0 && (
-                          <p style={ui.text.author}>{result.authors.join(", ")}</p>
-                        )}
-                        {result.publisher && (
-                          <p style={ui.text.helper}>{result.publisher}</p>
-                        )}
-                        {result.isbn && (
-                          <p style={ui.text.helper}>ISBN: {result.isbn}</p>
-                        )}
-                      </div>
-                    </div>
-                      </div>
-  );
-})}
-              </div>
-
-              {visibleCount < searchResults.length && (
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount((prev) => prev + 10)}
-                  style={{
-                    ...ui.button.muted,
-                    marginTop: "16px",
-                    width: "100%",
-                  }}
-                >
-                  さらに10件表示
-                </button>
+        return (
+          <div
+            key={`${result.isbn || result.title}-${index}`}
+            className="resultCard"
+            style={{
+              ...ui.addPage.resultCard,
+              ...(isSelected ? ui.addPage.resultCardSelected : {}),
+            }}
+            onClick={() => {
+              setSelectedBook(result);
+              setSelectedStatus("未読");
+              setIsFavorite(false);
+              setTagInput("");
+            }}
+          >
+            <div
+              className="resultCardInner"
+              style={ui.addPage.resultCardInner}
+            >
+              {normalizeThumbnailUrl(result.thumbnail) ? (
+                <img
+                  src={normalizeThumbnailUrl(result.thumbnail)}
+                  alt={result.title}
+                  className="resultCover"
+                  loading="lazy"
+                  style={ui.addPage.resultCover}
+                />
+              ) : (
+                <div className="resultCoverPlaceholder">
+                  表紙
+                </div>
               )}
-            </>
-            )}
+
+              <div>
+                <p style={ui.text.title}>{result.title}</p>
+
+                {result.authors?.length > 0 && (
+                  <p style={ui.text.author}>{result.authors.join(", ")}</p>
+                )}
+
+                {result.publisher && (
+                  <p style={ui.text.helper}>{result.publisher}</p>
+                )}
+
+                {result.isbn && (
+                  <p style={ui.text.helper}>ISBN: {result.isbn}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    {visibleCount < searchResults.length && (
+      <button
+        type="button"
+        onClick={() => setVisibleCount((prev) => prev + 10)}
+        style={{
+          ...ui.button.muted,
+          marginTop: "16px",
+          width: "100%",
+        }}
+      >
+        さらに10件表示
+      </button>
+    )}
+  </>
+)}
 
 {selectedBook && (
   <div
@@ -823,7 +804,7 @@ await addDoc(collection(db, "readingLogs"), logPayload);
         </button>
       </div>
 
-      <div className="bookRow" style={ui.addPage.bookRow}>
+      <div className="selectedBookRow">
         <div>
           {normalizeThumbnailUrl(selectedBook.thumbnail) ? (
             <img
