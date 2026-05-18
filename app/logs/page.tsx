@@ -59,13 +59,6 @@ function getStatusBadgeStyle(status: string) {
     };
   }
 
-  if (status === "中断") {
-    return {
-      ...ui.logs.statusBadgeBase,
-      ...ui.logs.statusBadgePaused,
-    };
-  }
-
   return {
     ...ui.logs.statusBadgeBase,
     ...ui.logs.statusBadgeUnread,
@@ -128,7 +121,14 @@ export default function LogsPage() {
   return true;
 });
 
-const groupedLogs = filteredLogs.reduce<Record<string, ReadingLog[]>>(
+const sortedLogs = [...filteredLogs].sort((a, b) => {
+  const dateA = a.date || "";
+  const dateB = b.date || "";
+
+  return dateB.localeCompare(dateA);
+});
+
+const groupedLogs = sortedLogs.reduce<Record<string, ReadingLog[]>>(
   (groups, log) => {
     if (!groups[log.date]) {
       groups[log.date] = [];
@@ -407,7 +407,6 @@ return (
       <option value="未読">未読</option>
       <option value="読書中">読書中</option>
       <option value="読了">読了</option>
-      <option value="中断">中断</option>
     </select>
   </div>
 
@@ -547,7 +546,6 @@ return (
           <option value="未読">未読</option>
           <option value="読書中">読書中</option>
           <option value="読了">読了</option>
-          <option value="中断">中断</option>
         </select>
       </div>
 

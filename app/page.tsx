@@ -23,6 +23,7 @@ import {
   SortIcon,
   SeriesIcon,
   FavoriteIcon,
+  SearchIcon,
 } from "../components/icons";
 
 type SavedBook = {
@@ -92,6 +93,7 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<string>("すべて");
   const [selectedOwned, setSelectedOwned] = useState("すべて");
   const [searchText, setSearchText] = useState("");
+  const [showSearchBox, setShowSearchBox] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagFilterText, setTagFilterText] = useState("");
   const [activeTagIndex, setActiveTagIndex] = useState(-1);
@@ -517,6 +519,82 @@ if (
   margin-bottom: 28px;
 }
 
+.topToolRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+  margin-bottom: 10px;
+}
+
+.searchArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.searchInputInline {
+  width: min(520px, 100%);
+  height: 40px;
+  border: 1px solid ${ui.colors.borderSoft};
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 14px;
+  background: ${ui.colors.cardBg};
+  color: ${ui.colors.text};
+  outline: none;
+  box-sizing: border-box;
+}
+
+.toolbarRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: 16px;
+}
+
+.searchBoxRow {
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.searchBackdrop {
+  display: none;
+}
+
+.statusTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.searchPopup {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 520px;
+}
+
+.searchCloseButton {
+  display: none;
+}
+
   .booksGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -536,15 +614,6 @@ if (
   .filterBox {
     width: 100%;
   }
-
-  .statusAndToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  margin-bottom: 16px;
-}
 
 .statusTabs {
   display: flex;
@@ -652,13 +721,109 @@ if (
     grid-template-columns: 1fr;
   }
 
-  .statusAndToolbar {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
+  .topToolRow {
+    position: relative;
+  }
+
+.searchArea {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 8px;
-  margin-bottom: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+    .searchArea .iconButton {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    flex: 0 0 40px;
+    border-radius: 999px;
+    padding: 0;
+  }
+
+    .searchPopup {
+    position: fixed;
+    top: 82px;
+    left: 16px;
+    right: 16px;
+    z-index: 1000;
+  }
+
+.searchInputInline {
+  width: 100%;
+  height: 40px;
+  border: 1px solid ${ui.colors.borderSoft};
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 14px;
+  background: ${ui.colors.cardBg};
+  color: ${ui.colors.text};
+  outline: none;
+  box-sizing: border-box;
+}
+
+   .searchCloseButton {
+    display: flex;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: ${ui.colors.subText};
+  }
+
+    .searchBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .searchPopup {
+    z-index: 1000;
+  }
+
+
+  .toolbarRow {
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .statusTabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    overflow: visible;
+  }
+
+.statusTabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.toolbarRow {
+  display: flex !important;
+  justify-content: flex-end;
+  gap: 8px;
+  position: relative;
+  z-index: 20;
 }
 
 .statusTabs {
@@ -700,84 +865,74 @@ if (
   <PageHeader title="My Bookshelf" />
 </div>
 
-<div
-  style={{
-    marginTop: "-16px",
-    marginBottom: "10px",
-    width: "100%",
-  }}
->
-  <div style={{ position: "relative", width: "100%" }}>
-    <input
-      id="searchText"
-      type="text"
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
-      style={{
-        ...ui.input.base,
-        width: "100%",
-        maxWidth: "100%",
-        boxSizing: "border-box",
-        paddingRight: "36px",
-        border: `1px solid ${ui.colors.borderSoft}`,
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          // 何もしなくてOK（リアルタイム検索だから）
-        }
-      }}
+<div className="topToolRow">
+  <div className="searchArea">
+    <button
+      type="button"
+      className={`iconButton ${showSearchBox || searchText ? "iconButtonActive" : ""}`}
+      onClick={() => setShowSearchBox((prev) => !prev)}
+      aria-pressed={showSearchBox}
+      aria-label={showSearchBox ? "検索を閉じる" : "検索を開く"}
+      title={showSearchBox ? "検索を閉じる" : "検索を開く"}
+    >
+      <SearchIcon />
+    </button>
+
+    {showSearchBox && (
+  <>
+    <button
+      type="button"
+      className="searchBackdrop"
+      onClick={() => setShowSearchBox(false)}
+      aria-label="検索を閉じる"
     />
 
-  {searchText && (
-    <button
-      onClick={() => setSearchText("")}
-      style={ui.homePage.clearButton}
-    >
-      ×
-    </button>
-  )}
-</div>
-</div>
+    <div className="searchPopup">
+      <input
+        id="searchText"
+        type="text"
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+        placeholder="タイトル / 著者 / ISBN / 出版社 / メモ / タグ"
+        className="searchInputInline"
+        autoFocus
+      />
 
-<div className="statusAndToolbar">
-  <div className="statusTabs">
-    {statusTabs.map((status) => (
       <button
-        key={status}
         type="button"
-        className={`statusTab ${
-          selectedStatus === status ? "statusTabActive" : ""
-        }`}
-        onClick={() => setSelectedStatus(status)}
+        className="searchCloseButton"
+        onClick={() => setShowSearchBox(false)}
+        aria-label="検索を閉じる"
       >
-        {status}
+        ×
       </button>
-    ))}
+    </div>
+  </>
+)}
   </div>
 
   <div className="toolbarRow">
-<button
-  type="button"
-  className={`iconButton ${showFilters ? "iconButtonActive" : ""}`}
-  onClick={toggleFilters}
-  aria-pressed={showFilters}
-  aria-label={showFilters ? "フィルターOFF" : "フィルターON"}
-  title={showFilters ? "フィルターOFF" : "フィルターON"}
->
-  <FilterIcon />
-</button>
+    <button
+      type="button"
+      className={`iconButton ${showFilters ? "iconButtonActive" : ""}`}
+      onClick={toggleFilters}
+      aria-pressed={showFilters}
+      aria-label={showFilters ? "フィルターOFF" : "フィルターON"}
+      title={showFilters ? "フィルターOFF" : "フィルターON"}
+    >
+      <FilterIcon />
+    </button>
+
     <div className="sortMenuWrap">
-<button
-  type="button"
-  className={`iconButton ${sortOrder !== "newest" ? "iconButtonActive" : ""}`}
-  onClick={() => setShowSortMenu((prev) => !prev)}
-  aria-label="並び替え"
-  title="並び替え"
->
-  <SortIcon />
-</button>
+      <button
+        type="button"
+        className={`iconButton ${sortOrder !== "newest" ? "iconButtonActive" : ""}`}
+        onClick={() => setShowSortMenu((prev) => !prev)}
+        aria-label="並び替え"
+        title="並び替え"
+      >
+        <SortIcon />
+      </button>
 
       {showSortMenu && (
         <div className="sortMenu">
@@ -822,26 +977,41 @@ if (
     </div>
 
     <button
-  type="button"
-  className={`iconButton ${useSeriesView ? "iconButtonActive" : ""}`}
-  onClick={() => setUseSeriesView((prev) => !prev)}
-  aria-label="シリーズ表示"
-  title="シリーズ表示"
->
-  <SeriesIcon />
-</button>
+      type="button"
+      className={`iconButton ${useSeriesView ? "iconButtonActive" : ""}`}
+      onClick={() => setUseSeriesView((prev) => !prev)}
+      aria-label="シリーズ表示"
+      title="シリーズ表示"
+    >
+      <SeriesIcon />
+    </button>
 
     <button
-  type="button"
-  className={`iconButton ${showFavoritesOnly ? "iconButtonActive" : ""}`}
-  onClick={() => setShowFavoritesOnly((prev) => !prev)}
-  aria-pressed={showFavoritesOnly}
-  aria-label={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
-  title={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
->
-  <FavoriteIcon filled={showFavoritesOnly} />
-</button>
+      type="button"
+      className={`iconButton ${showFavoritesOnly ? "iconButtonActive" : ""}`}
+      onClick={() => setShowFavoritesOnly((prev) => !prev)}
+      aria-pressed={showFavoritesOnly}
+      aria-label={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
+      title={showFavoritesOnly ? "お気に入りOFF" : "お気に入りON"}
+    >
+      <FavoriteIcon filled={showFavoritesOnly} />
+    </button>
   </div>
+</div>
+
+<div className="statusTabs">
+  {statusTabs.map((status) => (
+    <button
+      key={status}
+      type="button"
+      className={`statusTab ${
+        selectedStatus === status ? "statusTabActive" : ""
+      }`}
+      onClick={() => setSelectedStatus(status)}
+    >
+      {status}
+    </button>
+  ))}
 </div>
 
         <div
